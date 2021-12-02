@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/navgraph_main"
+    app:startDestination="@id/profileFragment">
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.tmdbclient.ProfileFragment"
+        android:label="Profile"
+        tools:layout="@layout/fragment_profile" />
+    <fragment
+        android:id="@+id/movieFragment"
+        android:name="com.example.tmdbclient.MovieFragment"
+        android:label="Movies"
+        tools:layout="@layout/fragment_movie" />
+    <fragment
+        android:id="@+id/tvFragment"
+        android:name="com.example.tmdbclient.TvFragment"
+        android:label="TV Shows"
+        tools:layout="@layout/fragment_tv" />
+</navigation>
