@@ -1,5 +1,7 @@
 package com.example.tmdbclient
 
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -44,7 +46,10 @@ class MovieListAdapter(
             itemView.setOnClickListener { clickListener(movie) }
 
             itemView.findViewById<TextView>(R.id.title).text = movie.title
-            Glide.with(itemView).load(TMDB_POSTER_W780 + movie.posterPath).into(itemView.findViewById<ImageView>(R.id.poster))
+            Glide
+                .with(itemView)
+                .load(TMDB_POSTER_W780 + movie.posterPath)
+                .into(itemView.findViewById<ImageView>(R.id.poster))
         }
     }
 }

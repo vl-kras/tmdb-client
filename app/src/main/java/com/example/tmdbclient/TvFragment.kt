@@ -1,5 +1,9 @@
 package com.example.tmdbclient
 
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -46,7 +50,10 @@ class ShowListAdapter(
             itemView.setOnClickListener { clickListener(show) }
 
             itemView.findViewById<TextView>(R.id.title).text = show.name
-            Glide.with(itemView).load(TMDB_POSTER_W780 + show.posterPath).into(itemView.findViewById<ImageView>(R.id.poster))
+            Glide
+                .with(itemView)
+                .load(TMDB_POSTER_W780 + show.posterPath)
+                .into(itemView.findViewById<ImageView>(R.id.poster))
         }
     }
 }
