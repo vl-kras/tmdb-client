@@ -1,7 +1,7 @@
 package com.example.tmdbclient
 
 import android.util.Log
-import com.google.gson.GsonBuilder
+import com.example.tmdbclient.TmdbBasePaths.API_BASE_PATH
 import com.google.gson.annotations.SerializedName
 import okhttp3.OkHttpClient
 import retrofit2.Call
@@ -100,7 +100,19 @@ data class CreateSessionResponseBody(
     @SerializedName("session_id") val sessionId: String,
 )
 
+data class UserAccount(
+    @SerializedName("id") val id: Int?,
+    @SerializedName("name") val name: String?,
+    @SerializedName("username") val username: String?,
+)
+
 interface TmdbAPi {
+
+    @GET("account")
+    fun getAccountDetails(
+        @Query("api_key") apiKey: String,
+        @Query("session_id") sessionId: String
+    ): Call<UserAccount>
 
     @GET("authentication/token/new")
     fun createRequestToken(
@@ -141,7 +153,8 @@ interface TmdbAPi {
     ): Call<PopularShows>
 }
 
-class Backend {
+object Backend {
+    private const val API_KEY = "c23761b45323bcad507e18c946b0d939"
 
     private val retrofit = Retrofit.Builder()
         .baseUrl(API_BASE_PATH)
@@ -154,6 +167,13 @@ class Backend {
     }
 
     private val service = buildService(TmdbAPi::class.java)
+
+    fun getAccountDetails(sessionId: String) : UserAccount {
+        val response = service.getAccountDetails(API_KEY, sessionId).execute()
+        Log.d("BLABLA", response.raw().toString())
+        return response.body()
+            ?: throw NoSuchElementException("Could not fetch user account")
+    }
 
     fun createSession(requestToken: String): String {
         val request = service
@@ -175,9 +195,6 @@ class Backend {
     }
 
     fun deleteSession(sessionId: String) : Logout {
-//        val requestBody = object {
-//            @SerializedName("session_id") val sessionId = sessionId
-//        }
         val requestBody = LogoutRequestBody(sessionId)
         val result = service.deleteSession(apiKey = API_KEY, body = requestBody).execute()
         return result.body()
@@ -192,10 +209,5 @@ class Backend {
     fun getPopularMoviesByPage(page: Int = 1) : List<Movie> {
         return service.getMoviesPopular(apiKey = API_KEY, page = page).execute().body()?.results
             ?: throw NoSuchElementException("We ain't found shit!")
-    }
-
-    companion object {
-        private const val API_BASE_PATH = "https://api.themoviedb.org/3/"
-        private const val API_KEY = "c23761b45323bcad507e18c946b0d939"
     }
 }

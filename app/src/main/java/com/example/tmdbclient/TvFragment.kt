@@ -1,9 +1,5 @@
 package com.example.tmdbclient
 
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,19 +8,16 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
-import androidx.navigation.navGraphViewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_W300
 
 class ShowListAdapter(
     private val shows: List<TvShow>,
     private val clickListener: (TvShow) -> Unit)
     : RecyclerView.Adapter<ShowListAdapter.ShowViewHolder>() {
-
-    val TMDB_POSTER_W780 = "https://image.tmdb.org/t/p/w780"
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ShowViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -52,7 +45,7 @@ class ShowListAdapter(
             itemView.findViewById<TextView>(R.id.title).text = show.name
             Glide
                 .with(itemView)
-                .load(TMDB_POSTER_W780 + show.posterPath)
+                .load(TMDB_POSTER_W300 + show.posterPath)
                 .into(itemView.findViewById<ImageView>(R.id.poster))
         }
     }

@@ -1,7 +1,5 @@
 package com.example.tmdbclient
 
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,13 +12,12 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_W300
 
 class MovieListAdapter(
     private val movies: List<Movie>,
     private val clickListener: (Movie) -> Unit)
     : RecyclerView.Adapter<MovieListAdapter.MovieViewHolder>() {
-
-    val TMDB_POSTER_W780 = "https://image.tmdb.org/t/p/w780"
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MovieViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -48,7 +45,7 @@ class MovieListAdapter(
             itemView.findViewById<TextView>(R.id.title).text = movie.title
             Glide
                 .with(itemView)
-                .load(TMDB_POSTER_W780 + movie.posterPath)
+                .load(TMDB_POSTER_W300 + movie.posterPath)
                 .into(itemView.findViewById<ImageView>(R.id.poster))
         }
     }

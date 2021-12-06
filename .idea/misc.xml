@@ -9,11 +9,13 @@
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/drawable/ic_baseline_person_24.xml" value="0.1" />
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/activity_main.xml" value="0.2758152173913043" />
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/fragment_movie.xml" value="0.36666666666666664" />
-        <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/fragment_profile.xml" value="0.36666666666666664" />
+        <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/fragment_profile.xml" value="0.2" />
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/fragment_tv.xml" value="0.1" />
+        <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/user_card.xml" value="0.34057971014492755" />
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/view_movie.xml" value="0.36666666666666664" />
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/view_movie_item.xml" value="0.2777777777777778" />
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/view_show_item.xml" value="0.20520833333333333" />
+        <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/view_user_card.xml" value="0.1" />
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/menu/menu_navview.xml" value="0.1" />
       </map>
     </option>

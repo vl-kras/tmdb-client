@@ -7,12 +7,36 @@
     tools:context=".ProfileFragment">
 
     <TextView
-        android:id="@+id/profile_info"
+        android:id="@+id/session_id_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="profile"/>
+        tools:text="90587hgma0p9egmys9ro08hukj7je095ugj"/>
+
+    <TextView
+        android:id="@+id/account_id_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/session_id_label"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="ID 123503948678973465"/>
+
+    <TextView
+        android:id="@+id/account_name_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/account_id_label"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="John Doe"/>
+
+    <TextView
+        android:id="@+id/account_username_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/account_name_label"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="Real Original Username"/>
 
     <EditText
         android:id="@+id/username_input"

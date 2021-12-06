@@ -40,7 +40,6 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     }
 
     override fun onSupportNavigateUp(): Boolean {
-
         return findNavController(R.id.fragmentContainerView).navigateUp()
     }
 

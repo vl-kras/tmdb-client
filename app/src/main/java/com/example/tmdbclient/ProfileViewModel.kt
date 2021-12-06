@@ -1,73 +1,60 @@
 package com.example.tmdbclient
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Scheduler
-import io.reactivex.rxjava3.core.Single
-import io.reactivex.rxjava3.schedulers.Schedulers
-import java.lang.Exception
-import kotlin.concurrent.thread
+import androidx.lifecycle.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class ProfileViewModel : ViewModel() {
 
-    private val backgroundScheduler: Scheduler = Schedulers.io()
-    private val foregroundScheduler: Scheduler = AndroidSchedulers.mainThread()
-
-    private val backend = Backend()
+    private val ioDispatcher = Dispatchers.IO
+    private val backend = Backend
 
     private var _profile: MutableLiveData<Session> = MutableLiveData()
     val profile: LiveData<Session> = _profile
+    val account: LiveData<UserAccount> by lazy {
+        liveData(ioDispatcher) {
+            var isRunning = true
+            while(isRunning) {
+                try {
+                    emit(backend.getAccountDetails(profile.value?.sessionId ?: throw Exception("No session id")))
+                    isRunning = false
+                } catch (e: Exception) {
+                    kotlinx.coroutines.delay(15_000)
+                }
+            }
+        }
+    }
 
-    //TODO possibly doing work on main thread, probably Promise.get()
-    fun createSession(username: String, password: String) : String {
-        val token = Single.fromCallable {
-            with(backend) {
+    fun login(username: String, password: String) {
+        viewModelScope.launch(ioDispatcher) {
+            val sessionId = with(backend) {
                 val token = createRequestToken()
                 validateTokenWithLogin(username, password, token)
                 createSession(token)
             }
+            _profile.postValue(Session(true, sessionId))
         }
-            .subscribeOn(backgroundScheduler).toFuture()
-//            .observeOn(foregroundScheduler)
-//            .subscribe(
-//                { _profile.value = Session(true, it) },
-//                { Log.e("BLABLA", it.localizedMessage) }
-//            )
-//        Log.d("BLABLA", profile.value?.sessionId ?: "null")
-
-        return token.get().also {
-            Log.d("BLABLA", it)
-        } ?: throw Exception("Nothing here")
     }
 
     fun setSession(id: String?) {
-        if (id != null) {
+        if (!id.isNullOrBlank()) {
             _profile.value = Session(
                 sessionId = id,
             )
         }
     }
 
-    //TODO make profile null and make the view observe it properly
-    fun logout() : Boolean {
+    fun logout() {
         val sessionId = _profile.value?.sessionId
-        var logoutSuccessful = false
+        Log.d("BLABLA", "Session = $sessionId")
 
-        Single.fromCallable {
-            if (!sessionId.isNullOrBlank()) {
+        if(!sessionId.isNullOrBlank()) {
+            viewModelScope.launch(ioDispatcher) {
                 backend.deleteSession(sessionId)
-                _profile.value = Session(false, "no session")
             }
+            _profile.value = Session(false, "")
+            Log.d("BLABLA", "Session = ${_profile.value}")
         }
-            .subscribeOn(backgroundScheduler)
-            .observeOn(foregroundScheduler)
-            .subscribe(
-                { logoutSuccessful = true },
-                { logoutSuccessful = false }
-            )
-        return logoutSuccessful
     }
 }
