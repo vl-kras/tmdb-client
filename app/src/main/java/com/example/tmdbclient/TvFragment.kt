@@ -58,6 +58,7 @@ class TvFragment : Fragment(R.layout.fragment_tv) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+
         val recyclerView = view.findViewById<RecyclerView>(R.id.showListView).apply {
             layoutManager = GridLayoutManager(context, 2)
         }

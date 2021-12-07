@@ -28,11 +28,12 @@ class ProfileViewModel : ViewModel() {
 
     fun login(username: String, password: String) {
         viewModelScope.launch(ioDispatcher) {
-            val sessionId = with(backend) {
-                val token = createRequestToken()
-                validateTokenWithLogin(username, password, token)
-                createSession(token)
-            }
+            val sessionId =
+                with(backend) {
+                    val token = createRequestToken()
+                    validateTokenWithLogin(username, password, token)
+                    createSession(token)
+                }
             _profile.postValue(Session(true, sessionId))
         }
     }

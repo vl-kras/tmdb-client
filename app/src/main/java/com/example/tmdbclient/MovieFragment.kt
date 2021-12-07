@@ -6,9 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -53,7 +54,7 @@ class MovieListAdapter(
 
 class MovieFragment : Fragment(R.layout.fragment_movie) {
 
-    private val viewModel : MovieViewModel by activityViewModels()
+    private val viewModel : MovieViewModel by viewModels()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -61,11 +62,14 @@ class MovieFragment : Fragment(R.layout.fragment_movie) {
         val recyclerView = view.findViewById<RecyclerView>(R.id.movieListView).apply {
             layoutManager = GridLayoutManager(context, 2)
         }
+        val onMovieClick: (Movie) -> Unit = { movie ->
+            val action = R.id.action_movieListFragment_to_movieDetailsFragment
+            val bundle = bundleOf("movieId" to movie.id)
+            findNavController().navigate(action, bundle)
+        }
 
-        viewModel.movieList.observe(viewLifecycleOwner) {
-            recyclerView.apply {
-                adapter = MovieListAdapter(it) { Toast.makeText(context, it.overview, Toast.LENGTH_SHORT).show() }
-            }
+        viewModel.movieList.observe(viewLifecycleOwner) { movieList ->
+            recyclerView.adapter = MovieListAdapter(movieList, onMovieClick)
         }
     }
 }
