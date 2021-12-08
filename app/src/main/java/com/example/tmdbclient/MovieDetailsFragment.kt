@@ -1,18 +1,40 @@
 package com.example.tmdbclient
 
 import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.TextView
+import android.view.ViewGroup
+import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
+import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_ORIGINAL
+import com.example.tmdbclient.databinding.FragmentMovieDetailsBinding
 import kotlinx.coroutines.launch
+import java.lang.StringBuilder
+import java.util.*
 
-class MovieDetailsFragment : Fragment(R.layout.fragment_movie_details) {
+class MovieDetailsFragment : Fragment() {
 
     private val profileVM: ProfileViewModel by activityViewModels()
     private val movieDetailsVM: MovieDetailsViewModel by viewModels()
+
+    private var _binding : FragmentMovieDetailsBinding? = null
+    private val binding get() = _binding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+
+        _binding = FragmentMovieDetailsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -20,9 +42,76 @@ class MovieDetailsFragment : Fragment(R.layout.fragment_movie_details) {
         val movieId = arguments?.getInt("movieId")
             ?: throw NullPointerException("Passed MovieID cannot be null'")
 
+        val actionBar = (activity as MainActivity).supportActionBar
+
         lifecycleScope.launch {
+
             val movieDetails = movieDetailsVM.getMovieById(movieId)
-            view.findViewById<TextView>(R.id.movie_details).text = movieDetails.toString()
+
+
+            actionBar?.title = movieDetails.title
+
+            with(binding) {
+
+                Log.d("BLABLA", movieDetails.toString())
+
+                poster.apply {
+                    Glide.with(this)
+                        .load(TMDB_POSTER_ORIGINAL + movieDetails.posterPath)
+                        .into(this)
+                }
+
+                title.text = movieDetails.title
+
+                if (movieDetails.isAdult) {
+                    adult.text = "16+"
+                } else {
+                    adult.visibility = View.GONE
+                }
+                genres.text = movieDetails.genres.joinToString { it.name }
+
+                if (movieDetails.runtime != null) {
+                    runtime.text = movieDetails.runtime.let { runtime ->
+                        //runtime is in minutes, convert it to "X hours Y minutes" format
+                            val hour = 60
+                            StringBuilder()
+                                .append(runtime.div(hour), "h ") // get full hours
+                                .append(runtime.mod(hour), "m") //get minutes that are left
+                                .toString()
+                    }
+                }
+
+                tagline.text = movieDetails.tagline
+
+                overview.text = movieDetails.overview
+
+                userScore.text = "${movieDetails.voteAverage.times(10)}%"
+
+                giveRating.setOnClickListener {
+                    val editText = EditText(activity)
+
+                    AlertDialog.Builder(requireActivity())
+                        .setMessage("Enter movie rating")
+                        .setView(editText)
+                        .setPositiveButton("Send") { _, _ ->
+                            lifecycleScope.launch {
+                                movieDetailsVM.rateMovie(
+                                    movieId,
+                                    editText.text.toString().toFloat(),
+                                    profileVM.profile.value!!.sessionId
+                                )
+                            }
+                        }
+                        .setNegativeButton("Cancel") { _, _ -> } //do nothing (remove dialog)
+                        .create()
+                        .show()
+                }
+            }
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

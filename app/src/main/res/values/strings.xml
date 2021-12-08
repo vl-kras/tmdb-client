@@ -3,11 +3,11 @@
     <string name="menu_profile">Profile</string>
     <string name="menu_movies">Movies</string>
     <string name="menu_item">TV Shows</string>
-    <string name="guest_login_button_label">Login as guest</string>
+    <string name="login_button_label">Login</string>
     <string name="logout_button_label">Logout</string>
     <string name="username_input_hint">Username</string>
     <string name="password_input_hint">Password</string>
     <string name="poster_content_description">Poster</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="adult_age">16+</string>
+    <string name="give_rating">Give rating</string>
 </resources>

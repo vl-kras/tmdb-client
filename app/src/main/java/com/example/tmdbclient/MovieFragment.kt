@@ -59,7 +59,7 @@ class MovieFragment : Fragment(R.layout.fragment_movie) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val recyclerView = view.findViewById<RecyclerView>(R.id.movieListView).apply {
+        val recyclerView = view.findViewById<RecyclerView>(R.id.movie_list).apply {
             layoutManager = GridLayoutManager(context, 2)
         }
         val onMovieClick: (Movie) -> Unit = { movie ->

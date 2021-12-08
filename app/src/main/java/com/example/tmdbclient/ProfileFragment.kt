@@ -7,6 +7,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.example.tmdbclient.MainActivity.Companion.SESSION_ID_TAG
@@ -18,9 +19,9 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val accountIdView = view.findViewById<TextView>(R.id.account_id_label)
-        val accountNameView = view.findViewById<TextView>(R.id.account_name_label)
-        val accountUsernameView = view.findViewById<TextView>(R.id.account_username_label)
+        val accountIdView = view.findViewById<TextView>(R.id.account_id)
+        val accountNameView = view.findViewById<TextView>(R.id.account_name)
+        val accountUsernameView = view.findViewById<TextView>(R.id.account_username)
 
         //display user account details
         viewModel.account.observe(viewLifecycleOwner) {
@@ -30,7 +31,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         }
 
         //button that logs user in
-        view.findViewById<Button>(R.id.btn_guest_login).setOnClickListener {
+        view.findViewById<Button>(R.id.login_button).setOnClickListener {
 
             val username = view.findViewById<EditText>(R.id.username_input).text.toString()
             val password = view.findViewById<EditText>(R.id.password_input).text.toString()
@@ -38,7 +39,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         }
 
         //button that logs user out
-        view.findViewById<Button>(R.id.btn_logout).setOnClickListener {
+        view.findViewById<Button>(R.id.logout_button).setOnClickListener {
 
             AlertDialog.Builder(requireActivity())
                 .setMessage("Confirm logging out")
@@ -56,17 +57,14 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 accountUsernameView.text = ""
 
             }
-            view.findViewById<TextView>(R.id.session_id_label)?.text = session.sessionId
+            view.findViewById<TextView>(R.id.session_id)?.text = session.sessionId
 
             //write sessionId changes to persistent storage
-            val prefsEditor = requireActivity().getPreferences(Context.MODE_PRIVATE).edit()
-            with(prefsEditor) {
-                if (session.sessionId.isNotBlank()) {
-                    putString(SESSION_ID_TAG, session.sessionId)
-                } else {
-                    remove(SESSION_ID_TAG)
-                }
-                apply()
+            val prefs = requireActivity().getPreferences(Context.MODE_PRIVATE)
+            if (session.sessionId.isNotBlank()) {
+                prefs.edit { putString(SESSION_ID_TAG, session.sessionId) } //new session
+            } else {
+                prefs.edit { remove(SESSION_ID_TAG) } //user logged out
             }
         }
     }

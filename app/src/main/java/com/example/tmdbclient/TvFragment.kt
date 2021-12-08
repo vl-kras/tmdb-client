@@ -59,7 +59,7 @@ class TvFragment : Fragment(R.layout.fragment_tv) {
         super.onViewCreated(view, savedInstanceState)
 
 
-        val recyclerView = view.findViewById<RecyclerView>(R.id.showListView).apply {
+        val recyclerView = view.findViewById<RecyclerView>(R.id.show_list).apply {
             layoutManager = GridLayoutManager(context, 2)
         }
 

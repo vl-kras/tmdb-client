@@ -2,6 +2,7 @@ package com.example.tmdbclient
 
 import android.util.Log
 import com.example.tmdbclient.TmdbBasePaths.API_BASE_PATH
+import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import okhttp3.OkHttpClient
 import retrofit2.Call
@@ -170,7 +171,27 @@ data class MovieDetails(
     )
 }
 
+object PostMovieRating {
+    data class RequestBody(
+        @SerializedName("value") val rating: Float
+    )
+    data class ResponseBody(
+        @SerializedName("status_code") val statusCode: Int,
+        @SerializedName("status_message") val statusMessage : String
+    )
+}
+
 interface TmdbAPi {
+
+
+    @POST("movie/{movie_id}/rating")
+    @Headers("Content-Type:application/json;charset=utf-8")
+    fun postMovieRating(
+        @Path("movie_id") movieId: Int,
+        @Query("api_key") apiKey: String,
+        @Query("session_id") sessionId: String,
+        @Body body: PostMovieRating.RequestBody
+    ): Call<PostMovieRating.ResponseBody>
 
     @GET("movie/{movie_id}")
     fun getMovieDetails(
@@ -200,14 +221,14 @@ interface TmdbAPi {
     @POST("authentication/session/new")
     fun createSession(
         @Query("api_key") apiKey: String,
-        @Body() body: CreateSessionRequestBody
+        @Body body: CreateSessionRequestBody
     ): Call<CreateSessionResponseBody>
 
     @HTTP(method = "DELETE", path = "authentication/session", hasBody = true)
 //    @DELETE("authentication/session")
     fun deleteSession(
         @Query("api_key") apiKey: String,
-        @Body body: Any
+        @Body body: LogoutRequestBody
     ): Call<Logout>
 
     @GET("movie/popular")
@@ -228,6 +249,56 @@ interface TmdbAPi {
 object Backend {
     private const val API_KEY = "c23761b45323bcad507e18c946b0d939"
 
+    private val statusCodes = mapOf(
+        Pair(1, "Success"),
+        Pair(2, "Invalid service: this service does not exist."),
+        Pair(3, "Authentication failed: You do not have permissions to access the service."),
+        Pair(4, "Invalid format: This service doesn't exist in that format."),
+        Pair(5, "Invalid parameters: Your request parameters are incorrect."),
+        Pair(6, "Invalid id: The pre-requisite id is invalid or not found."),
+        Pair(7, "Invalid API key: You must be granted a valid key."),
+        Pair(8, "Duplicate entry: The data you tried to submit already exists."),
+        Pair(9, "Service offline: This service is temporarily offline, try again later."),
+        Pair(10, "Suspended API key: Access to your account has been suspended, contact TMDB."),
+        Pair(11, "Internal error: Something went wrong, contact TMDB."),
+        Pair(12, "The item/record was updated successfully."),
+        Pair(13, "The item/record was deleted successfully."),
+        Pair(14, "Authentication failed."),
+        Pair(15, "Failed."),
+        Pair(16, "Device denied."),
+        Pair(17, "Session denied."),
+        Pair(18, "Validation failed."),
+        Pair(19, "Invalid accept header."),
+        Pair(20, "Invalid date range: Should be a range no longer than 14 days."),
+        Pair(21, "Entry not found: The item you are trying to edit cannot be found."),
+        Pair(22, "Invalid page: Pages start at 1 and max at 1000. They are expected to be an integer."),
+        Pair(23, "Invalid date: Format needs to be YYYY-MM-DD."),
+        Pair(24, "Your request to the backend server timed out. Try again."),
+        Pair(25, "Your request count (#) is over the allowed limit of (40)."),
+        Pair(26, "You must provide a username and password."),
+        Pair(27, "Too many append to response objects: The maximum number of remote calls is 20."),
+        Pair(28, "Invalid timezone: Please consult the documentation for a valid timezone."),
+        Pair(29, "You must confirm this action: Please provide a confirm=true parameter."),
+        Pair(30, "Invalid username and/or password: You did not provide a valid login."),
+        Pair(31, "Account disabled: Your account is no longer active. Contact TMDB if this is an error."),
+        Pair(32, "Email not verified: Your email address has not been verified."),
+        Pair(33, "Invalid request token: The request token is either expired or invalid."),
+        Pair(34, "The resource you requested could not be found."),
+        Pair(35, "Invalid token."),
+        Pair(36, "This token hasn't been granted write permission by the user."),
+        Pair(37, "The requested session could not be found."),
+        Pair(38, "You don't have permission to edit this resource."),
+        Pair(39, "This resource is private."),
+        Pair(40, "Nothing to update."),
+        Pair(41, "This request token hasn't been approved by the user."),
+        Pair(42, "This request method is not supported for this resource."),
+        Pair(43, "Couldn't connect to the backend server."),
+        Pair(44, "The ID is invalid."),
+        Pair(45, "This user has been suspended."),
+        Pair(46, "The API is undergoing maintenance. Try again later."),
+        Pair(47, "The input is not valid."),
+    )
+
     private val retrofit = Retrofit.Builder()
         .baseUrl(API_BASE_PATH)
         .addConverterFactory(GsonConverterFactory.create())
@@ -239,6 +310,28 @@ object Backend {
     }
 
     private val service = buildService(TmdbAPi::class.java)
+
+
+    ////////////////////////////////////////////////////////
+
+    fun postMovieRating(movieId: Int, rating: Float, sessionId: String) : Boolean {
+        //TODO Propagate up the stack: Rating from 0.5 to 10 with step 0.5
+        return if (rating in 0.5f..10.0f && (rating.mod(0.5f) == 0f)) {
+            val requestBody = PostMovieRating.RequestBody(rating)
+
+            Log.d("BLABLA", "$movieId, $API_KEY $rating, $sessionId")
+            Log.d("BLABLA", Gson().toJson(requestBody))
+            val request = service.postMovieRating(
+                movieId, API_KEY, sessionId, requestBody
+            )
+
+            val response = request.execute()
+            Log.d("BLABLA", response.raw().toString())
+            response.isSuccessful //
+        } else {
+            false //invalid rating value
+        }
+    }
 
     fun getMovieDetails(movieId: Int) : MovieDetails {
         val response = service.getMovieDetails(movieId, API_KEY).execute()

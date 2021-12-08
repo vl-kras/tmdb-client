@@ -20,4 +20,10 @@ class MovieDetailsViewModel: ViewModel() {
             }
         }
     }
+
+    suspend fun rateMovie(movieId: Int, rating: Float, sessionId: String) : Boolean {
+        return withContext(ioDispatcher) {
+            backend.postMovieRating(movieId, rating, sessionId)
+        }
+    }
 }
