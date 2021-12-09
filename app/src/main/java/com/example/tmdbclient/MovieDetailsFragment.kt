@@ -5,7 +5,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -16,7 +16,6 @@ import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_ORIGINAL
 import com.example.tmdbclient.databinding.FragmentMovieDetailsBinding
 import kotlinx.coroutines.launch
 import java.lang.StringBuilder
-import java.util.*
 
 class MovieDetailsFragment : Fragment() {
 
@@ -87,24 +86,54 @@ class MovieDetailsFragment : Fragment() {
 
                 userScore.text = "${movieDetails.voteAverage.times(10)}%"
 
-                giveRating.setOnClickListener {
-                    val editText = EditText(activity)
+                profileVM.profile.observe(viewLifecycleOwner) { user ->
+                    if (user is ProfileViewModel.AppSession.UserSession) {
+                        giveRating.visibility = View.VISIBLE
+                        giveRating.setOnClickListener {
+                            val values = resources.getStringArray(R.array.rating_options)
+                            val sessionId = user.sessionId
 
-                    AlertDialog.Builder(requireActivity())
-                        .setMessage("Enter movie rating")
-                        .setView(editText)
-                        .setPositiveButton("Send") { _, _ ->
-                            lifecycleScope.launch {
-                                movieDetailsVM.rateMovie(
-                                    movieId,
-                                    editText.text.toString().toFloat(),
-                                    profileVM.profile.value!!.sessionId
-                                )
-                            }
+                            AlertDialog.Builder(requireActivity())
+                                .setTitle("Select movie rating")
+                                .setItems(
+                                    values
+                                ) { _, itemIndex ->
+                                    lifecycleScope.launch {
+                                        val ratedSuccessfully = movieDetailsVM.rateMovie(
+                                            movieId,
+                                            values[itemIndex].toFloat(),
+                                            sessionId
+                                        )
+                                        val message: String = if (ratedSuccessfully) {
+                                            "New rating posted"
+                                        } else {
+                                            "Failed to post rating"
+                                        }
+                                        Toast.makeText(activity, message, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                .setNeutralButton("Remove current rating") { _, _ ->
+                                    lifecycleScope.launch {
+                                        val ratedSuccessfully = movieDetailsVM.removeMovieRating(
+                                            movieId,
+                                            sessionId
+                                        )
+                                        val message: String = if (ratedSuccessfully) {
+                                            "Successfully removed rating"
+                                        } else {
+                                            "Failed to remove rating"
+                                        }
+                                        Toast.makeText(activity, message, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                .setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+                                .create()
+                                .show()
                         }
-                        .setNegativeButton("Cancel") { _, _ -> } //do nothing (remove dialog)
-                        .create()
-                        .show()
+
+                    } else {
+                        giveRating.visibility = View.GONE
+                    }
                 }
             }
         }

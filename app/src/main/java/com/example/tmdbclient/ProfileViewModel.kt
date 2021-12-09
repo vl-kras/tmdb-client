@@ -1,61 +1,56 @@
 package com.example.tmdbclient
 
-import android.util.Log
 import androidx.lifecycle.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 
 class ProfileViewModel : ViewModel() {
+
+    sealed class AppSession {
+        class UserSession(val sessionId: String, val details: UserAccount) : AppSession()
+        object NoSession : AppSession()
+    }
 
     private val ioDispatcher = Dispatchers.IO
     private val backend = Backend
 
-    private var _profile: MutableLiveData<Session> = MutableLiveData()
-    val profile: LiveData<Session> = _profile
-    val account: LiveData<UserAccount> by lazy {
-        liveData(ioDispatcher) {
-            var isRunning = true
-            while(isRunning) {
-                try {
-                    emit(backend.getAccountDetails(profile.value?.sessionId ?: throw Exception("No session id")))
-                    isRunning = false
-                } catch (e: Exception) {
-                    kotlinx.coroutines.delay(15_000)
-                }
+    private var _profile: MutableLiveData<AppSession> = MutableLiveData(AppSession.NoSession)
+    val profile: LiveData<AppSession> = _profile
+
+    fun signIn(username: String, password: String) {
+        viewModelScope.launch {
+            val sessionId = withContext(ioDispatcher) {
+                val token = backend.createRequestToken()
+                backend.validateTokenWithLogin(username, password, token)
+                backend.createSession(token)
             }
+            setActiveSession(sessionId)
         }
     }
 
-    fun login(username: String, password: String) {
-        viewModelScope.launch(ioDispatcher) {
-            val sessionId =
-                with(backend) {
-                    val token = createRequestToken()
-                    validateTokenWithLogin(username, password, token)
-                    createSession(token)
-                }
-            _profile.postValue(Session(true, sessionId))
-        }
-    }
-
-    fun setSession(id: String?) {
-        if (!id.isNullOrBlank()) {
-            _profile.value = Session(
-                sessionId = id,
+    suspend fun setActiveSession(sessionId: String) {
+        if (sessionId.isNotBlank()) {
+            val accountDetails = withContext(ioDispatcher) {
+                backend.getAccountDetails(sessionId)
+            }
+            _profile.value = AppSession . UserSession (
+                sessionId,
+                accountDetails
             )
         }
     }
 
-    fun logout() {
-        val sessionId = _profile.value?.sessionId
-        Log.d("BLABLA", "Session = $sessionId")
-
-        if(!sessionId.isNullOrBlank()) {
-            viewModelScope.launch(ioDispatcher) {
-                backend.deleteSession(sessionId)
+    fun signOut() {
+        if (_profile.value is AppSession.UserSession) {
+            val sessionId = (_profile.value as AppSession.UserSession).sessionId
+            if(sessionId.isNotBlank()) {
+                viewModelScope.launch(ioDispatcher) {
+                    backend.deleteSession(sessionId)
+                }
+                _profile.value = AppSession.NoSession
             }
-            _profile.value = Session(false, "")
-            Log.d("BLABLA", "Session = ${_profile.value}")
         }
     }
 }

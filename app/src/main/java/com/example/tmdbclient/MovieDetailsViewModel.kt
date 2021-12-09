@@ -26,4 +26,10 @@ class MovieDetailsViewModel: ViewModel() {
             backend.postMovieRating(movieId, rating, sessionId)
         }
     }
+
+    suspend fun removeMovieRating(movieId: Int, sessionId: String) : Boolean {
+        return withContext(ioDispatcher) {
+            backend.deleteMovieRating(movieId, sessionId)
+        }
+    }
 }

@@ -181,8 +181,22 @@ object PostMovieRating {
     )
 }
 
+object DeleteMovieRating {
+    data class ResponseBody(
+        @SerializedName("status_code") val statusCode: Int,
+        @SerializedName("status_message") val statusMessage : String
+    )
+}
+
 interface TmdbAPi {
 
+    @DELETE("movie/{movie_id}/rating")
+    @Headers("Content-Type:application/json;charset=utf-8")
+    fun deleteMovieRating(
+        @Path("movie_id") movieId: Int,
+        @Query("api_key") apiKey: String,
+        @Query("session_id") sessionId: String,
+    ): Call<DeleteMovieRating.ResponseBody>
 
     @POST("movie/{movie_id}/rating")
     @Headers("Content-Type:application/json;charset=utf-8")
@@ -314,9 +328,15 @@ object Backend {
 
     ////////////////////////////////////////////////////////
 
-    fun postMovieRating(movieId: Int, rating: Float, sessionId: String) : Boolean {
-        //TODO Propagate up the stack: Rating from 0.5 to 10 with step 0.5
-        return if (rating in 0.5f..10.0f && (rating.mod(0.5f) == 0f)) {
+    fun deleteMovieRating(movieId: Int, sessionId: String): Boolean {
+        val request = service.deleteMovieRating(movieId, API_KEY, sessionId)
+        val response = request.execute()
+        return response.isSuccessful
+    }
+
+    fun postMovieRating(movieId: Int, rating: Float, sessionId: String): Boolean {
+        //rating in 0.5..10 step 0.5, otherwise service returns 400 "Bad Request"
+        return if ((rating in 0.5f..10.0f) && (rating.mod(0.5f) == 0f)) {
             val requestBody = PostMovieRating.RequestBody(rating)
 
             Log.d("BLABLA", "$movieId, $API_KEY $rating, $sessionId")

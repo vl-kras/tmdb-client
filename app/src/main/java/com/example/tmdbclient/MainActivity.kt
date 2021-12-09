@@ -3,15 +3,21 @@ package com.example.tmdbclient
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.tmdbclient.databinding.ActivityMainBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+
+    //TODO main goal - make multiple backstacks work (one backstack for each top navigation target)
 
     private val viewModel : ProfileViewModel by viewModels()
 
@@ -38,9 +44,14 @@ class MainActivity : AppCompatActivity() {
         bottomNavView.setupWithNavController(navController)
 
         //Load the session cookies if they exist
-        val prefs = getPreferences(Context.MODE_PRIVATE)
-        val sessionId = prefs?.getString(SESSION_ID_TAG, null)
-        viewModel.setSession(sessionId)
+        lifecycleScope.launch {
+            val prefs = getPreferences(Context.MODE_PRIVATE)
+            val sessionId = prefs?.getString(SESSION_ID_TAG, null)
+            if (!sessionId.isNullOrBlank()) {
+                viewModel.setActiveSession(sessionId)
+            }
+        }
+
     }
 
     override fun onSupportNavigateUp(): Boolean {
