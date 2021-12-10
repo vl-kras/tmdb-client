@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
@@ -52,9 +51,9 @@ class MovieListAdapter(
     }
 }
 
-class MovieFragment : Fragment(R.layout.fragment_movie) {
+class MovieListFragment : Fragment(R.layout.fragment_movie_list) {
 
-    private val viewModel : MovieViewModel by viewModels()
+    private val listViewModel : MovieListViewModel by viewModels()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -62,13 +61,14 @@ class MovieFragment : Fragment(R.layout.fragment_movie) {
         val recyclerView = view.findViewById<RecyclerView>(R.id.movie_list).apply {
             layoutManager = GridLayoutManager(context, 2)
         }
+
         val onMovieClick: (Movie) -> Unit = { movie ->
-            val action = R.id.action_movieListFragment_to_movieDetailsFragment
-            val bundle = bundleOf("movieId" to movie.id)
-            findNavController().navigate(action, bundle)
+            val amount = movie.id
+            val action = MovieListFragmentDirections.showMovieDetails(amount)
+            findNavController().navigate(action)
         }
 
-        viewModel.movieList.observe(viewLifecycleOwner) { movieList ->
+        listViewModel.movieList.observe(viewLifecycleOwner) { movieList ->
             recyclerView.adapter = MovieListAdapter(movieList, onMovieClick)
         }
     }

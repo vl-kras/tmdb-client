@@ -10,27 +10,47 @@
         android:name="com.example.tmdbclient.ProfileFragment"
         android:label="Profile"
         tools:layout="@layout/fragment_profile" />
+
     <fragment
-        android:id="@+id/movieFragment"
-        android:name="com.example.tmdbclient.MovieFragment"
+        android:id="@+id/movieListFragment"
+        android:name="com.example.tmdbclient.MovieListFragment"
         android:label="Movies"
-        tools:layout="@layout/fragment_movie" >
+        tools:layout="@layout/fragment_movie_list" >
         <action
-            android:id="@+id/action_movieListFragment_to_movieDetailsFragment"
+            android:id="@+id/show_movie_details"
             app:destination="@id/movieDetailsFragment" />
     </fragment>
+
     <fragment
-        android:id="@+id/tvFragment"
-        android:name="com.example.tmdbclient.TvFragment"
+        android:id="@+id/tvShowListFragment"
+        android:name="com.example.tmdbclient.TvShowListFragment"
         android:label="TV Shows"
-        tools:layout="@layout/fragment_tv" >
+        tools:layout="@layout/fragment_tvshow_list" >
         <argument
             android:name="movieId"
             app:argType="integer" />
+        <action
+            android:id="@+id/show_tvshow_details"
+            app:destination="@id/tvShowDetailsFragment" />
     </fragment>
+
     <fragment
         android:id="@+id/movieDetailsFragment"
         android:name="com.example.tmdbclient.MovieDetailsFragment"
         android:label="fragment_movie_details"
-        tools:layout="@layout/fragment_movie_details" />
+        tools:layout="@layout/fragment_movie_details" >
+        <argument
+            android:name="movieId"
+            app:argType="integer" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/tvShowDetailsFragment"
+        android:name="com.example.tmdbclient.TvShowDetailsFragment"
+        android:label="fragment_tvshow_details"
+        tools:layout="@layout/fragment_tvshow_details" >
+        <argument
+            android:name="showId"
+            app:argType="integer" />
+    </fragment>
 </navigation>

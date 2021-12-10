@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.liveData
 import kotlinx.coroutines.Dispatchers
 
-class TvViewModel : ViewModel() {
+class TvShowListViewModel : ViewModel() {
 
     private val backend = Backend
     private val ioDispatcher = Dispatchers.IO

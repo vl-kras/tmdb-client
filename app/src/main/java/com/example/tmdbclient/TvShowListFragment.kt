@@ -6,9 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -51,9 +51,9 @@ class ShowListAdapter(
     }
 }
 
-class TvFragment : Fragment(R.layout.fragment_tv) {
+class TvShowListFragment : Fragment(R.layout.fragment_tvshow_list) {
 
-    private val viewModel : TvViewModel by viewModels()
+    private val showListViewModel : TvShowListViewModel by viewModels()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -63,10 +63,14 @@ class TvFragment : Fragment(R.layout.fragment_tv) {
             layoutManager = GridLayoutManager(context, 2)
         }
 
-        viewModel.showList.observe(viewLifecycleOwner) {
-            recyclerView.apply {
-                adapter = ShowListAdapter(it) { Toast.makeText(context, it.overview, Toast.LENGTH_SHORT).show() }
-            }
+        val onTvShowClick: (TvShow) -> Unit = { show ->
+            val amount = show.id
+            val action = TvShowListFragmentDirections.showTvshowDetails(amount)
+            findNavController().navigate(action)
+        }
+
+        showListViewModel.showList.observe(viewLifecycleOwner) { tvShowList ->
+            recyclerView.adapter = ShowListAdapter(tvShowList, onTvShowClick)
         }
     }
 }

@@ -14,6 +14,7 @@ import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.example.tmdbclient.MainActivity.Companion.SESSION_ID_TAG
+import com.google.android.material.snackbar.Snackbar
 import kotlin.Exception
 
 class ProfileFragment : Fragment(R.layout.fragment_profile) {
@@ -60,7 +61,15 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                         AlertDialog.Builder(requireContext())
                             .setTitle("Confirm signing out")
                             .setPositiveButton("Confirm") { _, _ ->
-                                viewModel.signOut()
+
+                                val success = viewModel.signOut()
+                                val message = if (success) {
+                                    "Signed out successfully"
+                                } else {
+                                    "Failed to sign out correctly"
+                                }
+                                Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT).show()
+
                                 //remove session cookies from persistent storage
                                 prefs.edit { remove(SESSION_ID_TAG) }
                             }
@@ -96,10 +105,16 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                             .setTitle("Your TMDB credentials")
                             .setView(dialogView)
                             .setPositiveButton("Sign in") { _, _ ->
-                                viewModel.signIn(
+                                val success = viewModel.signIn(
                                     username = usernameInput.text.toString(),
                                     password = passwordInput.text.toString()
                                 )
+                                val message = if (success) {
+                                    "Signed in successfully"
+                                } else {
+                                    "Failed to sign in"
+                                }
+                                Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT).show()
                             }
                             .setNegativeButton("Cancel") { dialog,_ -> dialog.cancel() }
                             .create()

@@ -3,7 +3,6 @@ package com.example.tmdbclient
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
@@ -12,7 +11,6 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.tmdbclient.databinding.ActivityMainBinding
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -38,7 +36,7 @@ class MainActivity : AppCompatActivity() {
         val navController = navFragment?.findNavController()
             ?: throw NoSuchElementException("Could not find NavController")
         val configuration = AppBarConfiguration(
-            setOf(R.id.profileFragment, R.id.movieFragment, R.id.tvFragment)
+            setOf(R.id.profileFragment, R.id.movieListFragment, R.id.tvShowListFragment)
         )
         setupActionBarWithNavController(navController, configuration)
         bottomNavView.setupWithNavController(navController)
