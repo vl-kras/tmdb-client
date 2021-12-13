@@ -39,15 +39,15 @@
         tools:text="Real Original Username"/>
 
     <Button
-        android:id="@+id/login_button"
+        android:id="@+id/sign_in_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@id/logout_button"
+        app:layout_constraintBottom_toTopOf="@id/sign_out_button"
         android:layout_margin="4dp"
         android:text="@string/login_button_label"/>
 
     <Button
-        android:id="@+id/logout_button"
+        android:id="@+id/sign_out_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"

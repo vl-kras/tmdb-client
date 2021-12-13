@@ -11,6 +11,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 import java.io.IOException
 
+
+//TODO implement SOLID & Clean architecture
+
 data class PopularShows (
 
     @SerializedName("page") val page : Int,

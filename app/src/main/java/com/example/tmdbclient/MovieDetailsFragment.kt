@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -28,10 +27,6 @@ class MovieDetailsFragment : Fragment() {
     private var _binding : FragmentMovieDetailsBinding? = null
     private val binding get() = _binding!!
 
-    private val movieId: Int by lazy {
-        args.movieId
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -49,7 +44,7 @@ class MovieDetailsFragment : Fragment() {
 
         lifecycleScope.launch {
 
-            val movieDetails = movieDetailsVM.getMovieById(movieId)
+            val movieDetails = movieDetailsVM.getMovieById(args.movieId)
 
             actionBar?.title = movieDetails.title
 
@@ -131,11 +126,11 @@ class MovieDetailsFragment : Fragment() {
     private fun getRatingDialogOnItemClickAction(
         values: Array<String>,
         sessionId: String
-    ): (DialogInterface, Int) -> Unit {
-        return { _, itemIndex: Int ->
+    ): DialogInterface.OnClickListener {
+        return DialogInterface.OnClickListener { _, itemIndex: Int ->
             lifecycleScope.launch {
                 val ratedSuccessfully = movieDetailsVM.rateMovie(
-                    movieId,
+                    args.movieId,
                     values[itemIndex].toFloat(),
                     sessionId
                 )
@@ -151,11 +146,11 @@ class MovieDetailsFragment : Fragment() {
 
     private fun getRatingDialogNeutralAction(
         sessionId: String
-    ): (DialogInterface, Int) -> Unit {
-        return { _, _ ->
+    ): DialogInterface.OnClickListener {
+        return DialogInterface.OnClickListener { _, _ ->
             lifecycleScope.launch {
                 val ratedSuccessfully = movieDetailsVM.removeMovieRating(
-                    movieId,
+                    args.movieId,
                     sessionId
                 )
                 val message = if (ratedSuccessfully) {
