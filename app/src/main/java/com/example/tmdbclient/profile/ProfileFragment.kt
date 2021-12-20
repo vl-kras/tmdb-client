@@ -1,4 +1,4 @@
-package com.example.tmdbclient
+package com.example.tmdbclient.profile
 
 import android.content.Context
 import android.content.DialogInterface
@@ -10,12 +10,17 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.edit
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import com.example.tmdbclient.MainActivity.Companion.SESSION_ID_TAG
 import com.example.tmdbclient.databinding.FragmentProfileBinding
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 
+
+// tries to be Humble (mostly responsible for drawing the UI)
 class ProfileFragment : Fragment() {
 
     //TODO make destination fragment from here
@@ -38,18 +43,22 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        //display user account details
-        viewModel.profile.observe(viewLifecycleOwner) { user ->
-            when (user) {
-                is ProfileViewModel.AppSession.UserSession -> {
-                    displaySignedInState(user)
-                    //write sessionId changes to persistent storage
-                    storeSessionId(user.sessionId)
-                }
-                is ProfileViewModel.AppSession.NoSession -> {
-                    displaySignedOutState()
-                }
+        with(binding!!) {
+            signInButton.setOnClickListener{
+                createSignInDialog().show()
             }
+            signOutButton.setOnClickListener {
+                createSignOutDialog().show()
+            }
+        }
+
+        //display user state
+        viewModel.getProfile().observe(viewLifecycleOwner) { user ->
+            if (user is ProfileState.UserState) {
+                displayProfileDetails(user)
+                storeSessionId(user.sessionId)
+            }
+            displayState(user)
         }
     }
 
@@ -75,13 +84,16 @@ class ProfileFragment : Fragment() {
             .setTitle("Your TMDB credentials")
             .setView(dialogView)
             .setPositiveButton("Sign in") { _, _ ->
-                val success = viewModel.signIn(
+                val action = ProfileState.Action.SignIn(
                     username = usernameInput.text.toString(),
                     password = passwordInput.text.toString()
                 )
-                val message = if (success) {
+                val message: String = try {
+                    lifecycleScope.launch {
+                        viewModel.handleAction(action)
+                    }
                     "Signed in successfully"
-                } else {
+                } catch (e: IllegalStateException) {
                     "Failed to sign in"
                 }
                 Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT).show()
@@ -102,17 +114,21 @@ class ProfileFragment : Fragment() {
     private fun getSignOutDialogPositiveAction(): DialogInterface.OnClickListener {
         return DialogInterface.OnClickListener { _, _ ->
 
-            val success = viewModel.signOut()
-            val message = if (success) {
+            val message: String = try {
+                lifecycleScope.launch {
+                    viewModel.handleAction(ProfileState.Action.SignOut)
+                }
                 "Signed out successfully"
-            } else {
+            } catch (e: IllegalStateException) {
                 "Failed to sign out correctly"
             }
             Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT).show()
 
             //remove session cookies from persistent storage
             val prefs = requireActivity().getPreferences(Context.MODE_PRIVATE)
-            prefs.edit { remove(SESSION_ID_TAG) }
+            prefs.edit {
+                remove(SESSION_ID_TAG)
+            }
         }
     }
 
@@ -124,33 +140,26 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun displaySignedInState(user: ProfileViewModel.AppSession.UserSession) {
-        binding!!.sessionId.text = user.sessionId
-        binding!!.accountId.text = user.details.id.toString()
-        binding!!.accountName.text = user.details.name
-        binding!!.accountUsername.text = user.details.username
-        binding!!.signInButton.visibility = View.GONE
-
-        //sign out button
-        binding!!.signOutButton.visibility = View.VISIBLE
-        binding!!.signOutButton.setOnClickListener {
-            createSignOutDialog().show()
+    private fun displayProfileDetails(userState: ProfileState.UserState) {
+        with(binding!!) {
+            sessionId.text = userState.sessionId
+            accountId.text = userState.userId.toString()
+            accountName.text = userState.name
+            accountUsername.text = userState.username
         }
     }
 
-    private fun displaySignedOutState() {
-        binding!!.sessionId.text = ""
-        binding!!.accountId.text = ""
-        binding!!.accountName.text = ""
-        binding!!.accountUsername.text = ""
-        binding!!.signOutButton.visibility = View.GONE
+    private fun displayState(state: ProfileState) {
+        with(binding!!) {
+            loadingIndicator.isVisible = state is ProfileState.Loading
 
-        //button that logs user in
-        binding!!.signInButton.visibility = View.VISIBLE
-        binding!!.signInButton.setOnClickListener{
-            createSignInDialog().show()
+            sessionId.isVisible = state is ProfileState.UserState
+            accountId.isVisible = state is ProfileState.UserState
+            accountName.isVisible = state is ProfileState.UserState
+            accountUsername.isVisible = state is ProfileState.UserState
+
+            signOutButton.isVisible = state is ProfileState.UserState
+            signInButton.isVisible = state is ProfileState.EmptyState
         }
     }
-
-
 }

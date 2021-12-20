@@ -13,6 +13,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.example.tmdbclient.databinding.FragmentTvshowDetailsBinding
+import com.example.tmdbclient.profile.ProfileState
+import com.example.tmdbclient.profile.ProfileViewModel
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
@@ -73,8 +75,8 @@ class TvShowDetailsFragment : Fragment() {
     }
 
     private fun configureRatingButton() {
-        profileVM.profile.observe(viewLifecycleOwner) { user ->
-            if (user is ProfileViewModel.AppSession.UserSession) {
+        profileVM.getProfile().observe(viewLifecycleOwner) { user ->
+            if (user is ProfileState.UserState) {
 
                 binding.giveRating.visibility = View.VISIBLE
                 binding.giveRating.setOnClickListener {

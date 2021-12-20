@@ -65,51 +65,7 @@ data class TvShow (
     @SerializedName("original_name") val originalName : String
 )
 
-data class Session(
-    @SerializedName("success") val isSuccess: Boolean = true,
-    @SerializedName("session_id") val sessionId: String
-)
 
-data class Logout(
-    @SerializedName("success") val isSuccess: Boolean
-)
-
-data class LogoutRequestBody(
-    @SerializedName("session_id") val sessionId: String
-)
-
-data class RequestTokenResponseBody(
-    @SerializedName("success") val isSuccess: Boolean,
-    @SerializedName("expires_at") val expiresAt : String,
-    @SerializedName("request_token") val requestToken : String
-)
-
-data class ValidateTokenWithLoginBody(
-    @SerializedName("username") val username: String,
-    @SerializedName("password") val password : String,
-    @SerializedName("request_token") val requestToken : String
-)
-
-data class ValidateTokenWithLoginResponse(
-    @SerializedName("success") val isSuccess: Boolean,
-    @SerializedName("expires_at") val expiresAt : String,
-    @SerializedName("request_token") val requestToken : String
-)
-
-data class CreateSessionRequestBody(
-    @SerializedName("request_token") val requestToken : String
-)
-
-data class CreateSessionResponseBody(
-    @SerializedName("success") val isSuccess: Boolean,
-    @SerializedName("session_id") val sessionId: String,
-)
-
-data class UserAccount(
-    @SerializedName("id") val id: Int?,
-    @SerializedName("name") val name: String?,
-    @SerializedName("username") val username: String?,
-)
 
 data class Genre(
 
@@ -338,36 +294,6 @@ interface TmdbAPi {
         @Query("append_to_response") appendToResponse: String? = null
     ): Call<MovieDetails>
 
-    @GET("account")
-    fun getAccountDetails(
-        @Query("api_key") apiKey: String,
-        @Query("session_id") sessionId: String
-    ): Call<UserAccount>
-
-    @GET("authentication/token/new")
-    fun createRequestToken(
-        @Query("api_key") apiKey: String
-    ): Call<RequestTokenResponseBody>
-
-    @POST("authentication/token/validate_with_login")
-    fun validateTokenWithLogin(
-        @Query("api_key") apiKey: String,
-        @Body body: ValidateTokenWithLoginBody
-    ): Call<ValidateTokenWithLoginResponse>
-
-    @POST("authentication/session/new")
-    fun createSession(
-        @Query("api_key") apiKey: String,
-        @Body body: CreateSessionRequestBody
-    ): Call<CreateSessionResponseBody>
-
-    @HTTP(method = "DELETE", path = "authentication/session", hasBody = true)
-//    @DELETE("authentication/session")
-    fun deleteSession(
-        @Query("api_key") apiKey: String,
-        @Body body: LogoutRequestBody
-    ): Call<Logout>
-
     @GET("movie/popular")
     fun getMoviesPopular(
         @Query("api_key") apiKey: String,
@@ -513,39 +439,6 @@ object Backend {
         Log.i("Movie Details", response.body().toString())
         return response.body()
             ?: throw NoSuchElementException("Could not fetch movie details")
-    }
-
-    fun getAccountDetails(sessionId: String) : UserAccount {
-        val response = service.getAccountDetails(API_KEY, sessionId).execute()
-        Log.d("BLABLA", response.raw().toString())
-        return response.body()
-            ?: throw NoSuchElementException("Could not fetch user account")
-    }
-
-    fun createSession(requestToken: String): String {
-        val request = service
-            .createSession(apiKey = API_KEY, body = CreateSessionRequestBody(requestToken))
-
-        return request.execute().body()?.sessionId
-            ?: throw NoSuchElementException("Failed to create session")
-    }
-
-    fun validateTokenWithLogin(username: String, password: String, token: String): Boolean {
-        val requestBody = ValidateTokenWithLoginBody(username, password, token)
-        return service.validateTokenWithLogin(apiKey = API_KEY, body = requestBody)
-            .execute().isSuccessful
-    }
-
-    fun createRequestToken() : String {
-        return service.createRequestToken(apiKey = API_KEY).execute().body()?.requestToken
-            ?: throw NoSuchElementException("Failed to create request token")
-    }
-
-    fun deleteSession(sessionId: String) : Logout {
-        val requestBody = LogoutRequestBody(sessionId)
-        val result = service.deleteSession(apiKey = API_KEY, body = requestBody).execute()
-        return result.body()
-            ?: throw NoSuchElementException("Body: ${result.code()}")
     }
 
     fun getPopularTvShowsByPage(page: Int = 1) : List<TvShow> {

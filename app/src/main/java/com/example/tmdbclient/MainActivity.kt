@@ -11,6 +11,8 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.tmdbclient.databinding.ActivityMainBinding
+import com.example.tmdbclient.profile.ProfileState
+import com.example.tmdbclient.profile.ProfileViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -46,7 +48,7 @@ class MainActivity : AppCompatActivity() {
             val prefs = getPreferences(Context.MODE_PRIVATE)
             val sessionId = prefs?.getString(SESSION_ID_TAG, null)
             if (!sessionId.isNullOrBlank()) {
-                viewModel.setActiveSession(sessionId)
+                viewModel.handleAction(ProfileState.Action.Restore(sessionId))
             }
         }
 
