@@ -18,9 +18,11 @@ class ProfileRepository(private val backend: ProfileBackendContract) {
     fun signIn(username: String, password: String): UserSession {
         return backend.signIn(username, password)
     }
+
     fun signOut(sessionId: String) {
         return backend.signOut(sessionId)
     }
+
     fun fetchAccountDetails(sessionId: String): UserSession {
         return backend.fetchAccountDetails(sessionId)
     }

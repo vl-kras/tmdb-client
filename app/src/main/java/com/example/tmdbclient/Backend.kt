@@ -2,7 +2,6 @@ package com.example.tmdbclient
 
 import android.util.Log
 import com.example.tmdbclient.TmdbBasePaths.API_BASE_PATH
-import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import okhttp3.OkHttpClient
 import retrofit2.Call
@@ -10,6 +9,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 import java.io.IOException
+import java.net.UnknownHostException
 
 
 //TODO implement SOLID & Clean architecture
@@ -297,8 +297,8 @@ interface TmdbAPi {
     @GET("movie/popular")
     fun getMoviesPopular(
         @Query("api_key") apiKey: String,
-        @Query("language") language: String? = null,
-        @Query("page") page: Int? = null
+        @Query("page") page: Int? = null,
+        @Query("language") language: String? = null
     ): Call<PopularMovies>
 
     @GET("tv/popular")
@@ -388,14 +388,11 @@ object Backend {
         return if ((rating in 0.5f..10.0f) && (rating.mod(0.5f) == 0f)) {
             val requestBody = PostTvShowRating.RequestBody(rating)
 
-            Log.d("BLABLA", "$showId, $API_KEY $rating, $sessionId")
-            Log.d("BLABLA", Gson().toJson(requestBody))
             val request = service.postTvShowRating(
                 showId, API_KEY, sessionId, requestBody
             )
 
             val response = request.execute()
-            Log.d("BLABLA", response.raw().toString())
             response.isSuccessful //
         } else {
             false //invalid rating value
@@ -409,6 +406,8 @@ object Backend {
             ?: throw IOException("Failed to fetch show details")
     }
 
+    /////////////////////////////////////////////////////////////
+
     fun deleteMovieRating(movieId: Int, sessionId: String): Boolean {
         val request = service.deleteMovieRating(movieId, API_KEY, sessionId)
         val response = request.execute()
@@ -420,14 +419,11 @@ object Backend {
         return if ((rating in 0.5f..10.0f) && (rating.mod(0.5f) == 0f)) {
             val requestBody = PostMovieRating.RequestBody(rating)
 
-            Log.d("BLABLA", "$movieId, $API_KEY $rating, $sessionId")
-            Log.d("BLABLA", Gson().toJson(requestBody))
             val request = service.postMovieRating(
                 movieId, API_KEY, sessionId, requestBody
             )
 
             val response = request.execute()
-            Log.d("BLABLA", response.raw().toString())
             response.isSuccessful //
         } else {
             false //invalid rating value
@@ -436,18 +432,32 @@ object Backend {
 
     fun getMovieDetails(movieId: Int) : MovieDetails {
         val response = service.getMovieDetails(movieId, API_KEY).execute()
-        Log.i("Movie Details", response.body().toString())
         return response.body()
             ?: throw NoSuchElementException("Could not fetch movie details")
     }
+
+    /////////////////////////////////////////////////////////////
+
 
     fun getPopularTvShowsByPage(page: Int = 1) : List<TvShow> {
         return service.getShowsPopular(apiKey = API_KEY, page = page).execute().body()?.results
             ?: throw NoSuchElementException("We ain't found shit!")
     }
 
+    /////////////////////////////////////////////////////////////
+
     fun getPopularMoviesByPage(page: Int = 1) : List<Movie> {
-        return service.getMoviesPopular(apiKey = API_KEY, page = page).execute().body()?.results
-            ?: throw NoSuchElementException("We ain't found shit!")
+
+        // FIXME: 20-Dec-21
+        return try {
+            val request = service.getMoviesPopular(API_KEY, page)
+            val response = request.execute()
+            response.body()?.results
+                ?: throw IOException("We ain't found shit!")
+        }
+        catch (e: UnknownHostException) {
+            Log.d("BLABLA", e.toString())
+            emptyList()
+        }
     }
 }

@@ -1,4 +1,4 @@
-package com.example.tmdbclient
+package com.example.tmdbclient.tvshow.details
 
 import android.content.DialogInterface
 import android.os.Bundle
@@ -12,22 +12,28 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
-import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_ORIGINAL
-import com.example.tmdbclient.databinding.FragmentMovieDetailsBinding
+import com.example.tmdbclient.MainActivity
+import com.example.tmdbclient.R
+import com.example.tmdbclient.TmdbBasePaths
+import com.example.tmdbclient.TvShowDetails
+import com.example.tmdbclient.databinding.FragmentTvshowDetailsBinding
 import com.example.tmdbclient.profile.ProfileState
 import com.example.tmdbclient.profile.ProfileViewModel
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
-import java.lang.StringBuilder
 
-class MovieDetailsFragment : Fragment() {
+class TvShowDetailsFragment : Fragment() {
 
     private val profileVM: ProfileViewModel by activityViewModels()
-    private val movieDetailsVM: MovieDetailsViewModel by viewModels()
-    private val args: MovieDetailsFragmentArgs by navArgs()
+    private val tvShowDetailsVM: TvShowDetailsViewModel by viewModels()
+    private val args: TvShowDetailsFragmentArgs by navArgs()
 
-    private var _binding : FragmentMovieDetailsBinding? = null
+    private var _binding : FragmentTvshowDetailsBinding? = null
     private val binding get() = _binding!!
+
+    private val tvShowId: Int by lazy {
+        args.showId
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,7 +41,7 @@ class MovieDetailsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
 
-        _binding = FragmentMovieDetailsBinding.inflate(inflater, container, false)
+        _binding = FragmentTvshowDetailsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -46,19 +52,18 @@ class MovieDetailsFragment : Fragment() {
 
         lifecycleScope.launch {
 
-            val movieDetails = movieDetailsVM.getMovieById(args.movieId)
+            val tvShowDetails = tvShowDetailsVM.getTvShowById(tvShowId)
 
-            actionBar?.title = movieDetails.title
+            actionBar?.title = tvShowDetails.name
 
-            setMoviePoster(movieDetails)
-            setMovieAdultRating(movieDetails)
-            setMovieRuntime(movieDetails)
+            setMoviePoster(tvShowDetails)
             configureRatingButton()
-            binding.title.text = movieDetails.title
-            binding.genres.text = movieDetails.genres.joinToString { it.name }
-            binding.tagline.text = movieDetails.tagline
-            binding.overview.text = movieDetails.overview
-            binding.userScore.text = "${movieDetails.voteAverage.times(10)}%"
+            binding.name.text = tvShowDetails.name
+            binding.status.text = tvShowDetails.status
+            binding.genres.text = tvShowDetails.genres.joinToString { it.name }
+            binding.tagline.text = tvShowDetails.tagline
+            binding.overview.text = tvShowDetails.overview
+            binding.userScore.text = "${tvShowDetails.voteAverage.times(10)}%"
         }
     }
 
@@ -67,30 +72,10 @@ class MovieDetailsFragment : Fragment() {
         _binding = null
     }
 
-    private fun setMoviePoster(movie: MovieDetails) {
+    private fun setMoviePoster(show: TvShowDetails) {
         Glide.with(binding.poster)
-            .load(TMDB_POSTER_ORIGINAL + movie.posterPath)
+            .load(TmdbBasePaths.TMDB_POSTER_ORIGINAL + show.posterPath)
             .into(binding.poster)
-    }
-
-    private fun setMovieAdultRating(movie: MovieDetails) {
-        if (movie.isAdult) {
-            binding.adult.text = "16+"
-        } else {
-            binding.adult.visibility = View.GONE
-        }
-    }
-
-    private fun setMovieRuntime(movie: MovieDetails) {
-        if (movie.runtime != null) {
-            binding.runtime.text = movie.runtime.let { runtime ->
-                //runtime is in minutes, convert it to "X hours Y minutes" format
-                StringBuilder()
-                    .append(runtime.div(60), "h ") // get full hours
-                    .append(runtime.mod(60), "m") //get minutes that are left
-                    .toString()
-            }
-        }
     }
 
     private fun configureRatingButton() {
@@ -112,7 +97,7 @@ class MovieDetailsFragment : Fragment() {
 
     private fun buildRatingDialog(values: Array<String>, sessionId: String): AlertDialog {
         return AlertDialog.Builder(requireActivity())
-            .setTitle("Select movie rating")
+            .setTitle("Select show rating")
             .setItems(
                 values,
                 getRatingDialogOnItemClickAction(values,sessionId)
@@ -128,11 +113,11 @@ class MovieDetailsFragment : Fragment() {
     private fun getRatingDialogOnItemClickAction(
         values: Array<String>,
         sessionId: String
-    ): DialogInterface.OnClickListener {
-        return DialogInterface.OnClickListener { _, itemIndex: Int ->
+    ): (DialogInterface, Int) -> Unit {
+        return { _, itemIndex: Int ->
             lifecycleScope.launch {
-                val ratedSuccessfully = movieDetailsVM.rateMovie(
-                    args.movieId,
+                val ratedSuccessfully = tvShowDetailsVM.rateTvShow(
+                    tvShowId,
                     values[itemIndex].toFloat(),
                     sessionId
                 )
@@ -148,11 +133,11 @@ class MovieDetailsFragment : Fragment() {
 
     private fun getRatingDialogNeutralAction(
         sessionId: String
-    ): DialogInterface.OnClickListener {
-        return DialogInterface.OnClickListener { _, _ ->
+    ): (DialogInterface, Int) -> Unit {
+        return { _, _ ->
             lifecycleScope.launch {
-                val ratedSuccessfully = movieDetailsVM.removeMovieRating(
-                    args.movieId,
+                val ratedSuccessfully = tvShowDetailsVM.removeTvShowRating(
+                    tvShowId,
                     sessionId
                 )
                 val message = if (ratedSuccessfully) {

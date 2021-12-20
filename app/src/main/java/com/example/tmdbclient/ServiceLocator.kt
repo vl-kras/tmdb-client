@@ -17,7 +17,7 @@ object ServiceLocator {
         GsonConverterFactory.create()
     }
 
-    private val retrofit: Retrofit by lazy {
+    val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(TmdbBasePaths.API_BASE_PATH)
             .addConverterFactory(gsonConverterFactory)
@@ -25,12 +25,7 @@ object ServiceLocator {
             .build()
     }
 
-    @JvmName("getConfiguredRetrofit")
-    fun getRetrofit(): Retrofit {
-        return retrofit
-    }
-
-    fun getProfileRepositoryBackend() : ProfileRepository.ProfileBackendContract {
-        return ProfileBackend()
+    val profileRepositoryBackend: ProfileRepository.ProfileBackendContract by lazy {
+        ProfileBackend()
     }
 }

@@ -1,18 +1,28 @@
-package com.example.tmdbclient
+package com.example.tmdbclient.movie
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.example.tmdbclient.Movie
+import com.example.tmdbclient.R
 import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_W300
+import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MovieListAdapter(
     private val movies: List<Movie>,
@@ -51,6 +61,7 @@ class MovieListAdapter(
     }
 }
 
+//TODO add Paging
 class MovieListFragment : Fragment(R.layout.fragment_movie_list) {
 
     private val listViewModel : MovieListViewModel by viewModels()
@@ -58,6 +69,16 @@ class MovieListFragment : Fragment(R.layout.fragment_movie_list) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val statusMessage = view.findViewById<TextView>(R.id.status_message)
+        val retryButton = view.findViewById<Button>(R.id.retry_button)
+        retryButton.setOnClickListener {
+
+                listViewModel.handleAction(MovieListState.Action.Retry)
+
+        }
+
+
+        val progressBar = view.findViewById<ProgressBar>(R.id.loading_indicator)
         val recyclerView = view.findViewById<RecyclerView>(R.id.movie_list).apply {
             layoutManager = GridLayoutManager(context, 2)
         }
@@ -68,8 +89,30 @@ class MovieListFragment : Fragment(R.layout.fragment_movie_list) {
             findNavController().navigate(action)
         }
 
-        listViewModel.movieList.observe(viewLifecycleOwner) { movieList ->
-            recyclerView.adapter = MovieListAdapter(movieList, onMovieClick)
+
+            listViewModel.handleAction(MovieListState.Action.LoadMovies)
+
+
+
+        listViewModel.getMovies().observe(viewLifecycleOwner) { state ->
+
+            when (state) {
+                is MovieListState.Display -> {
+                    recyclerView.adapter = MovieListAdapter(state.movies, onMovieClick)
+                }
+                is MovieListState.Error -> {
+                    statusMessage.text = state.exception.localizedMessage
+                }
+            }
+
+            recyclerView.isVisible = state is MovieListState.Display
+
+            progressBar.isVisible = state is MovieListState.Loading
+
+            retryButton.isVisible = state is MovieListState.Error
+            statusMessage.isVisible = state is MovieListState.Error
         }
+
+
     }
 }

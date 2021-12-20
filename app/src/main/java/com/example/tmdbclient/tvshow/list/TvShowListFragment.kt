@@ -1,4 +1,4 @@
-package com.example.tmdbclient
+package com.example.tmdbclient.tvshow.list
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -12,7 +12,9 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.example.tmdbclient.R
 import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_W300
+import com.example.tmdbclient.TvShow
 
 class ShowListAdapter(
     private val shows: List<TvShow>,
@@ -51,6 +53,8 @@ class ShowListAdapter(
     }
 }
 
+
+//TODO add Paging
 class TvShowListFragment : Fragment(R.layout.fragment_tvshow_list) {
 
     private val showListViewModel : TvShowListViewModel by viewModels()

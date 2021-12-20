@@ -88,15 +88,9 @@ class ProfileFragment : Fragment() {
                     username = usernameInput.text.toString(),
                     password = passwordInput.text.toString()
                 )
-                val message: String = try {
-                    lifecycleScope.launch {
-                        viewModel.handleAction(action)
-                    }
-                    "Signed in successfully"
-                } catch (e: IllegalStateException) {
-                    "Failed to sign in"
+                lifecycleScope.launch {
+                    viewModel.handleAction(action)
                 }
-                Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
             .create()
@@ -159,7 +153,11 @@ class ProfileFragment : Fragment() {
             accountUsername.isVisible = state is ProfileState.UserState
 
             signOutButton.isVisible = state is ProfileState.UserState
-            signInButton.isVisible = state is ProfileState.EmptyState
+            signInButton.isVisible = (state is ProfileState.EmptyState) or (state is ProfileState.Error)
+
+            if (state is ProfileState.Error) {
+                Snackbar.make(view!!, state.exception.message.toString(), Snackbar.LENGTH_SHORT).show()
+            }
         }
     }
 }

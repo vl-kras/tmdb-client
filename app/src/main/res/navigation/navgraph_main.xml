@@ -13,7 +13,7 @@
 
     <fragment
         android:id="@+id/movieListFragment"
-        android:name="com.example.tmdbclient.MovieListFragment"
+        android:name="com.example.tmdbclient.movie.MovieListFragment"
         android:label="Movies"
         tools:layout="@layout/fragment_movie_list" >
         <action
@@ -23,7 +23,7 @@
 
     <fragment
         android:id="@+id/tvShowListFragment"
-        android:name="com.example.tmdbclient.TvShowListFragment"
+        android:name="com.example.tmdbclient.tvshow.list.TvShowListFragment"
         android:label="TV Shows"
         tools:layout="@layout/fragment_tvshow_list" >
         <argument
@@ -36,7 +36,7 @@
 
     <fragment
         android:id="@+id/movieDetailsFragment"
-        android:name="com.example.tmdbclient.MovieDetailsFragment"
+        android:name="com.example.tmdbclient.movie.details.MovieDetailsFragment"
         android:label="fragment_movie_details"
         tools:layout="@layout/fragment_movie_details" >
         <argument
@@ -46,7 +46,7 @@
 
     <fragment
         android:id="@+id/tvShowDetailsFragment"
-        android:name="com.example.tmdbclient.TvShowDetailsFragment"
+        android:name="com.example.tmdbclient.tvshow.details.TvShowDetailsFragment"
         android:label="fragment_tvshow_details"
         tools:layout="@layout/fragment_tvshow_details" >
         <argument

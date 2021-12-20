@@ -6,6 +6,9 @@ import androidx.lifecycle.ViewModel
 import com.example.tmdbclient.ServiceLocator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.net.SocketTimeoutException
+
 
 class ProfileViewModel : ViewModel() {
     private val ioDispatcher = Dispatchers.IO
@@ -13,12 +16,19 @@ class ProfileViewModel : ViewModel() {
     private var profile: MutableLiveData<ProfileState> = MutableLiveData(ProfileState.EmptyState)
 
     suspend fun handleAction(action: ProfileState.Action) {
-        profile.postValue(ProfileState.Loading)
-
-        val newState = withContext(ioDispatcher) {
-            profile.value!!.handle(action)
+        try {
+            profile.postValue(ProfileState.Loading)
+            val newState = withContext(ioDispatcher) {
+                profile.value!!.handle(action)
+            }
+            profile.postValue(newState)
         }
-        profile.postValue(newState)
+        catch (e: IOException) {
+            profile.postValue(ProfileState.Error(e))
+        }
+        catch (e: SocketTimeoutException) {
+            profile.postValue(ProfileState.Error(e))
+        }
     }
 
     fun getProfile(): LiveData<ProfileState> = profile
@@ -32,8 +42,8 @@ sealed class ProfileState {
         object SignOut: Action()
     }
 
-    val repository = ProfileRepository(
-        backend = ServiceLocator.getProfileRepositoryBackend()
+    protected val repository = ProfileRepository(
+        backend = ServiceLocator.profileRepositoryBackend
     )
 
     abstract fun handle(action: Action): ProfileState
@@ -90,5 +100,25 @@ sealed class ProfileState {
 
     object Loading : ProfileState() {
         override fun handle(action: Action): ProfileState = this
+    }
+
+    class Error(val exception: Exception): ProfileState() {
+
+        override fun handle(action: Action): ProfileState {
+            return when(action) {
+                is Action.SignIn -> {
+                    val session = repository.signIn(action.username, action.password)
+                    UserState(
+                        sessionId = session.sessionId,
+                        userId = session.userId,
+                        username = session.username,
+                        name = session.name
+                    )
+                }
+                else -> {
+                    throw IllegalArgumentException("$this can't handle $action")
+                }
+            }
+        }
     }
 }
