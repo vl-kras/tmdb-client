@@ -1,64 +1,41 @@
-package com.example.tmdbclient.movie
+package com.example.tmdbclient.movie.list
 
-import android.util.Log
 import androidx.lifecycle.*
-import com.example.tmdbclient.Backend
-import com.example.tmdbclient.Movie
+import com.example.tmdbclient.ServiceLocator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-
-//TODO implement exception handling!
 
 class MovieListViewModel : ViewModel() {
 
-
     private val ioDispatcher = Dispatchers.IO
 
-    private val movies = MutableLiveData<MovieListState>(MovieListState.Initial)
+    private val observableState = MutableLiveData<MovieListState>(MovieListState.Initial)
 
-    fun getMovies(): LiveData<MovieListState> = movies
+    fun getMovies(): LiveData<MovieListState> = observableState
 
     fun handleAction(action: MovieListState.Action) {
-        try {
-            movies.postValue(MovieListState.Loading)
 
-            viewModelScope.launch {
-                val newState: MovieListState = withContext(ioDispatcher) {
-
-                    movies.value!!.handle(action)
-
-                }
-                movies.postValue(newState)
+        viewModelScope.launch {
+            val oldState = observableState.value!!
+            observableState.postValue(MovieListState.Loading)
+            val newState: MovieListState = withContext(ioDispatcher) {
+                oldState.handle(action)
             }
-//            movies.postValue(MovieListState.Loading)
-//            val newState = withContext(ioDispatcher) {
-//                movies.value!!.handle(action)
-//            }
-//            movies.postValue(newState)
-        }
-        catch (e: IOException) {
-            movies.postValue(MovieListState.Error(e))
-        }
-        catch (e: SocketTimeoutException) {
-            movies.postValue(MovieListState.Error(e))
-        }
-        catch (e: UnknownHostException) {
-            movies.postValue(MovieListState.Error(e))
+            observableState.postValue(newState)
         }
     }
 }
 
 sealed class MovieListState {
 
-    protected val backend = Backend
+    protected val repository = MovieListRepository(
+        backend = ServiceLocator.movieListBackend
+    )
 
     sealed class Action {
-        object LoadMovies: Action()
-        object Retry: Action()
+        object Load: Action()
     }
 
     abstract fun handle(action: Action) : MovieListState
@@ -68,8 +45,13 @@ sealed class MovieListState {
         override fun handle(action: Action): MovieListState {
 
             return when (action) {
-                is Action.LoadMovies -> {
-                    Display(movies = backend.getPopularMoviesByPage())
+                is Action.Load -> {
+                    try {
+                        Display(movies = repository.fetchPopularMovies())
+                    }
+                    catch (e: UnknownHostException) {
+                        Error(e)
+                    }
                 }
                 else -> {
                     throw IllegalArgumentException("$this cannot handle $action")
@@ -83,7 +65,7 @@ sealed class MovieListState {
         override fun handle(action: Action): MovieListState = this
     }
 
-    class Display(val movies: List<Movie>): MovieListState() {
+    class Display(val movies: List<MovieListRepository.Movie>): MovieListState() {
 
         override fun handle(action: Action): MovieListState = this
     }
@@ -93,8 +75,13 @@ sealed class MovieListState {
         override fun handle(action: Action): MovieListState {
 
             return when (action) {
-                is Action.Retry -> {
-                    Display(movies = backend.getPopularMoviesByPage())
+                is Action.Load -> {
+                    try {
+                        Display(movies = repository.fetchPopularMovies())
+                    }
+                    catch (e: UnknownHostException) {
+                        Error(e)
+                    }
                 }
                 else -> {
                     throw IllegalArgumentException("$this cannot handle $action")

@@ -17,9 +17,10 @@ class ProfileViewModel : ViewModel() {
 
     suspend fun handleAction(action: ProfileState.Action) {
         try {
+            val oldState = profile.value!!
             profile.postValue(ProfileState.Loading)
             val newState = withContext(ioDispatcher) {
-                profile.value!!.handle(action)
+                oldState.handle(action)
             }
             profile.postValue(newState)
         }
