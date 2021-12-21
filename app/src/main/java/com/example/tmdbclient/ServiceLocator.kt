@@ -1,12 +1,20 @@
 package com.example.tmdbclient
 
+import com.example.tmdbclient.movie.details.MovieDetailsBackend
+import com.example.tmdbclient.movie.details.MovieDetailsRepository
+import com.example.tmdbclient.movie.list.MovieListBackend
+import com.example.tmdbclient.movie.list.MovieListRepository
 import com.example.tmdbclient.profile.ProfileBackend
 import com.example.tmdbclient.profile.ProfileRepository
+import com.example.tmdbclient.tvshow.details.TvShowDetailsBackend
+import com.example.tmdbclient.tvshow.details.TvShowDetailsRepository
+import com.example.tmdbclient.tvshow.list.TvShowListBackend
+import com.example.tmdbclient.tvshow.list.TvShowListRepository
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-// very dirty (knows about most dependencies)
+// dependency configurator (very dirty)
 object ServiceLocator {
 
     private val httpClient: OkHttpClient by lazy {
@@ -27,5 +35,21 @@ object ServiceLocator {
 
     val profileRepositoryBackend: ProfileRepository.ProfileBackendContract by lazy {
         ProfileBackend()
+    }
+
+    val movieListBackend: MovieListRepository.MovieListBackendContract by lazy {
+        MovieListBackend()
+    }
+
+    val movieDetailsBackend: MovieDetailsRepository.MovieDetailsBackendContract by lazy {
+        MovieDetailsBackend()
+    }
+
+    val tvShowListBackend: TvShowListRepository.TvShowListBackendContract by lazy {
+        TvShowListBackend()
+    }
+
+    val tvShowDetailsBackend: TvShowDetailsRepository.TvShowDetailsBackendContract by lazy {
+        TvShowDetailsBackend()
     }
 }

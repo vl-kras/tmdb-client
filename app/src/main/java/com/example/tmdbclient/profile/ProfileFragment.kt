@@ -130,7 +130,9 @@ class ProfileFragment : Fragment() {
         val prefs = requireActivity().getPreferences(Context.MODE_PRIVATE)
         val storedSession = prefs.getString(SESSION_ID_TAG, null)
         if (sessionId != storedSession) {
-            prefs.edit { putString(SESSION_ID_TAG, sessionId) }
+            prefs.edit {
+                putString(SESSION_ID_TAG, sessionId)
+            }
         }
     }
 

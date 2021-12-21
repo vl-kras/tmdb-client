@@ -1,32 +1,26 @@
-package com.example.tmdbclient.movie
+package com.example.tmdbclient.movie.list
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.ImageView
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.tmdbclient.Movie
 import com.example.tmdbclient.R
 import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_W300
-import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.example.tmdbclient.databinding.FragmentMovieListBinding
 
 class MovieListAdapter(
-    private val movies: List<Movie>,
-    private val clickListener: (Movie) -> Unit)
+    private val movies: List<MovieListRepository.Movie>,
+    private val clickListener: (MovieListRepository.Movie) -> Unit)
     : RecyclerView.Adapter<MovieListAdapter.MovieViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MovieViewHolder {
@@ -49,7 +43,7 @@ class MovieListAdapter(
 
     inner class MovieViewHolder(itemView : View): RecyclerView.ViewHolder(itemView) {
 
-        fun bind(movie: Movie,) {
+        fun bind(movie: MovieListRepository.Movie,) {
             itemView.setOnClickListener { clickListener(movie) }
 
             itemView.findViewById<TextView>(R.id.title).text = movie.title
@@ -62,57 +56,70 @@ class MovieListAdapter(
 }
 
 //TODO add Paging
-class MovieListFragment : Fragment(R.layout.fragment_movie_list) {
+class MovieListFragment : Fragment() {
 
     private val listViewModel : MovieListViewModel by viewModels()
+
+    private var _binding: FragmentMovieListBinding? = null
+    private val binding get() = _binding ?: throw IllegalStateException("Binding does not exist")
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+
+        _binding = FragmentMovieListBinding.inflate(inflater, container, false)
+        return _binding!!.root
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val statusMessage = view.findViewById<TextView>(R.id.status_message)
-        val retryButton = view.findViewById<Button>(R.id.retry_button)
-        retryButton.setOnClickListener {
+        binding.retryButton.setOnClickListener {
 
-                listViewModel.handleAction(MovieListState.Action.Retry)
-
+            listViewModel.handleAction(MovieListState.Action.Retry)
         }
 
-
-        val progressBar = view.findViewById<ProgressBar>(R.id.loading_indicator)
-        val recyclerView = view.findViewById<RecyclerView>(R.id.movie_list).apply {
+        val movieList = binding.movieList
+        movieList.apply {
             layoutManager = GridLayoutManager(context, 2)
         }
 
-        val onMovieClick: (Movie) -> Unit = { movie ->
-            val amount = movie.id
-            val action = MovieListFragmentDirections.showMovieDetails(amount)
+        val onMovieClick: (MovieListRepository.Movie) -> Unit = { movie ->
+            val action = MovieListFragmentDirections.showMovieDetails(movie.id)
             findNavController().navigate(action)
         }
 
 
-            listViewModel.handleAction(MovieListState.Action.LoadMovies)
-
-
-
         listViewModel.getMovies().observe(viewLifecycleOwner) { state ->
+            Log.d("BLABLA", "STATE IS $state")
 
             when (state) {
                 is MovieListState.Display -> {
-                    recyclerView.adapter = MovieListAdapter(state.movies, onMovieClick)
+                    movieList.adapter = MovieListAdapter(state.movies, onMovieClick)
                 }
                 is MovieListState.Error -> {
-                    statusMessage.text = state.exception.localizedMessage
+                    binding.statusMessage.text = state.exception.localizedMessage
                 }
             }
 
-            recyclerView.isVisible = state is MovieListState.Display
+            with(binding) {
+                movieList.isVisible = state is MovieListState.Display
 
-            progressBar.isVisible = state is MovieListState.Loading
+                loadingIndicator.isVisible = state is MovieListState.Loading
 
-            retryButton.isVisible = state is MovieListState.Error
-            statusMessage.isVisible = state is MovieListState.Error
+                retryButton.isVisible = state is MovieListState.Error
+                statusMessage.isVisible = state is MovieListState.Error
+            }
         }
 
 
+        listViewModel.handleAction(MovieListState.Action.LoadMovies)
+    }
+
+    override fun onDestroyView() {
+        _binding = null
+        super.onDestroyView()
     }
 }

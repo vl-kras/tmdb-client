@@ -6,21 +6,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
-import com.example.tmdbclient.MainActivity
-import com.example.tmdbclient.MovieDetails
 import com.example.tmdbclient.R
 import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_ORIGINAL
 import com.example.tmdbclient.databinding.FragmentMovieDetailsBinding
 import com.example.tmdbclient.profile.ProfileState
 import com.example.tmdbclient.profile.ProfileViewModel
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.launch
+import java.io.IOException
 import java.lang.StringBuilder
 
 class MovieDetailsFragment : Fragment() {
@@ -45,23 +43,13 @@ class MovieDetailsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val actionBar = (activity as MainActivity).supportActionBar
+        binding.retryButton.setOnClickListener {
+            val action = MovieDetailsState.Action.Load(args.movieId)
+            movieDetailsVM.handleAction(action)
+        }
 
-        lifecycleScope.launch {
-
-            val movieDetails = movieDetailsVM.getMovieById(args.movieId)
-
-            actionBar?.title = movieDetails.title
-
-            setMoviePoster(movieDetails)
-            setMovieAdultRating(movieDetails)
-            setMovieRuntime(movieDetails)
-            configureRatingButton()
-            binding.title.text = movieDetails.title
-            binding.genres.text = movieDetails.genres.joinToString { it.name }
-            binding.tagline.text = movieDetails.tagline
-            binding.overview.text = movieDetails.overview
-            binding.userScore.text = "${movieDetails.voteAverage.times(10)}%"
+        movieDetailsVM.getState().observe(viewLifecycleOwner) { state ->
+            observeStateChanges(state)
         }
     }
 
@@ -70,13 +58,60 @@ class MovieDetailsFragment : Fragment() {
         _binding = null
     }
 
-    private fun setMoviePoster(movie: MovieDetails) {
+    private fun observeStateChanges(state: MovieDetailsState) {
+        configureViews(state)
+        displayViews(state)
+    }
+
+    private fun configureViews(state: MovieDetailsState) {
+        when (state) {
+            is MovieDetailsState.Initial -> {
+                val action = MovieDetailsState.Action.Load(args.movieId)
+                movieDetailsVM.handleAction(action)
+            }
+            is MovieDetailsState.Display -> {
+                setMoviePoster(state.content)
+                setMovieAdultRating(state.content)
+                setMovieRuntime(state.content)
+                configureRatingButton()
+                binding.title.text = state.content.title
+                binding.genres.text = state.content.genres.joinToString { it }
+                binding.tagline.text = state.content.tagline
+                binding.overview.text = state.content.overview
+                binding.userScore.text = "${state.content.userScore.times(10)}%"
+            }
+            is MovieDetailsState.Error -> {
+                binding.statusMessage.text = state.exception.message
+            }
+        }
+    }
+
+    private fun displayViews(state: MovieDetailsState) {
+        with(binding) {
+            title.isVisible = state is MovieDetailsState.Display
+            poster.isVisible = state is MovieDetailsState.Display
+            genres.isVisible = state is MovieDetailsState.Display
+            tagline.isVisible = state is MovieDetailsState.Display
+            overview.isVisible = state is MovieDetailsState.Display
+            userScore.isVisible = state is MovieDetailsState.Display
+            giveRating.isVisible = (state is MovieDetailsState.Display) and
+                    (profileVM.getProfile().value is ProfileState.UserState)
+
+            loadingIndicator.isVisible = (state is MovieDetailsState.Loading)
+
+            statusMessage.isVisible = state is MovieDetailsState.Error
+            retryButton.isVisible = state is MovieDetailsState.Error
+        }
+    }
+
+    private fun setMoviePoster(movie: MovieDetailsRepository.MovieDetails) {
         Glide.with(binding.poster)
             .load(TMDB_POSTER_ORIGINAL + movie.posterPath)
             .into(binding.poster)
     }
 
-    private fun setMovieAdultRating(movie: MovieDetails) {
+    private fun setMovieAdultRating(movie: MovieDetailsRepository.MovieDetails) {
+
         if (movie.isAdult) {
             binding.adult.text = "16+"
         } else {
@@ -84,8 +119,9 @@ class MovieDetailsFragment : Fragment() {
         }
     }
 
-    private fun setMovieRuntime(movie: MovieDetails) {
-        if (movie.runtime != null) {
+    private fun setMovieRuntime(movie: MovieDetailsRepository.MovieDetails) {
+
+        if (movie.runtime == 0) {
             binding.runtime.text = movie.runtime.let { runtime ->
                 //runtime is in minutes, convert it to "X hours Y minutes" format
                 StringBuilder()
@@ -97,6 +133,7 @@ class MovieDetailsFragment : Fragment() {
     }
 
     private fun configureRatingButton() {
+
         profileVM.getProfile().observe(viewLifecycleOwner) { user ->
             if (user is ProfileState.UserState) {
 
@@ -114,6 +151,7 @@ class MovieDetailsFragment : Fragment() {
     }
 
     private fun buildRatingDialog(values: Array<String>, sessionId: String): AlertDialog {
+
         return AlertDialog.Builder(requireActivity())
             .setTitle("Select movie rating")
             .setItems(
@@ -132,39 +170,41 @@ class MovieDetailsFragment : Fragment() {
         values: Array<String>,
         sessionId: String
     ): DialogInterface.OnClickListener {
+
         return DialogInterface.OnClickListener { _, itemIndex: Int ->
-            lifecycleScope.launch {
-                val ratedSuccessfully = movieDetailsVM.rateMovie(
+            val message = try {
+                val action = MovieDetailsState.Action.PostRating(
+                    sessionId,
                     args.movieId,
-                    values[itemIndex].toFloat(),
-                    sessionId
+                    values[itemIndex].toFloat()
                 )
-                val message = if (ratedSuccessfully) {
-                    "New rating posted"
-                } else {
-                    "Failed to post rating"
-                }
-                Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT).show()
+                movieDetailsVM.handleAction(action)
+
+                "New rating posted"
+            } catch (e: IOException) {
+                "Failed to post rating"
             }
+            Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT).show()
         }
     }
 
     private fun getRatingDialogNeutralAction(
         sessionId: String
     ): DialogInterface.OnClickListener {
+
         return DialogInterface.OnClickListener { _, _ ->
-            lifecycleScope.launch {
-                val ratedSuccessfully = movieDetailsVM.removeMovieRating(
-                    args.movieId,
-                    sessionId
+            val message = try {
+                val action = MovieDetailsState.Action.DeleteRating(
+                    sessionId,
+                    args.movieId
                 )
-                val message = if (ratedSuccessfully) {
-                    "Successfully removed rating"
-                } else {
-                    "Failed to remove rating"
-                }
-                Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT).show()
+                movieDetailsVM.handleAction(action)
+
+                "Successfully removed rating"
+            } catch (e: IOException) {
+                "Failed to remove rating"
             }
+            Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT).show()
         }
     }
 }

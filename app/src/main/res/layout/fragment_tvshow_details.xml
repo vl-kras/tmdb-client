@@ -7,14 +7,12 @@
     android:layout_height="match_parent"
     tools:context=".tvshow.details.TvShowDetailsFragment">
 
-    <!-- TODO: Update blank fragment layout -->
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:orientation="vertical"
         app:layout_constraintGuide_percent="0.5"/>
-
 
     <ImageView
         android:id="@+id/poster"
