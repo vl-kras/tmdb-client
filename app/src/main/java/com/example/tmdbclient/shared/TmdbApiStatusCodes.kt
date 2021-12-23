@@ -1,4 +1,4 @@
-package com.example.tmdbclient
+package com.example.tmdbclient.shared
 
 object TmdbApiStatusCodes {
 

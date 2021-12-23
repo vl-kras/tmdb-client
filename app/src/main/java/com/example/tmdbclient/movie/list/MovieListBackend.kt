@@ -1,6 +1,9 @@
 package com.example.tmdbclient.movie.list
 
 import com.example.tmdbclient.*
+import com.example.tmdbclient.movie.list.logic.MovieListRepository
+import com.example.tmdbclient.shared.ApiError
+import com.example.tmdbclient.shared.ServiceLocator
 import com.google.gson.annotations.SerializedName
 import retrofit2.Call
 import retrofit2.http.GET
@@ -27,7 +30,7 @@ class MovieListBackend: MovieListRepository.MovieListBackendContract {
             MovieListRepository.Movie(
                 movie.id,
                 movie.title,
-                movie.posterPath
+                movie.posterPath ?: ""
             )
         }
     }
@@ -36,6 +39,16 @@ class MovieListBackend: MovieListRepository.MovieListBackendContract {
 
         val request = service.getMoviesPopular(apiKey, page)
         val response = request.execute()
+
+        //TODO maybe a better, safer way to get data from server
+//        val result = if (response.isSuccessful) {
+//            Result.success(response.body()!!.movieList)
+//        } else {
+//            val apiError = response.errorBody()?.let {
+//                ApiError.from(it)
+//            }
+//            Result.failure(apiError!!)
+//        }
         return response.body()?.movieList
             ?: throw IOException("Could not load popular movies")
     }
@@ -61,7 +74,7 @@ object GetPopularMovies {
             @SerializedName("original_title") val originalTitle : String,
             @SerializedName("overview") val overview : String,
             @SerializedName("popularity") val popularity : Double,
-            @SerializedName("poster_path") val posterPath : String,
+            @SerializedName("poster_path") val posterPath : String?,
             @SerializedName("release_date") val releaseDate : String,
             @SerializedName("title") val title : String,
             @SerializedName("video") val hasVideo : Boolean,

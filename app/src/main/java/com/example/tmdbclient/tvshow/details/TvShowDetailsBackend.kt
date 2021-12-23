@@ -1,6 +1,7 @@
 package com.example.tmdbclient.tvshow.details
 
 import com.example.tmdbclient.*
+import com.example.tmdbclient.shared.ServiceLocator
 import com.google.gson.annotations.SerializedName
 import retrofit2.Call
 import retrofit2.http.*

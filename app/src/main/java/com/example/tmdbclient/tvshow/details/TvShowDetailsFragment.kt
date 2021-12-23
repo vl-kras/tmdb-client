@@ -13,11 +13,10 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.example.tmdbclient.R
-import com.example.tmdbclient.TmdbBasePaths
+import com.example.tmdbclient.shared.TmdbBasePaths
 import com.example.tmdbclient.databinding.FragmentTvshowDetailsBinding
 import com.example.tmdbclient.profile.ProfileState
 import com.example.tmdbclient.profile.ProfileViewModel
-import com.example.tmdbclient.tvshow.list.TvShowListState
 
 class TvShowDetailsFragment : Fragment() {
 

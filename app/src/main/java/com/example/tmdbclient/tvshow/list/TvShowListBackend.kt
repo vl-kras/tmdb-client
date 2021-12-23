@@ -1,12 +1,16 @@
 package com.example.tmdbclient.tvshow.list
 
 import com.example.tmdbclient.BuildConfig
-import com.example.tmdbclient.ServiceLocator
+import com.example.tmdbclient.shared.ServiceLocator
 import com.google.gson.annotations.SerializedName
+import okhttp3.ResponseBody
 import retrofit2.Call
+import retrofit2.Converter
+import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
 import java.io.IOException
+import java.lang.reflect.Type
 
 interface TmdbShowlistApi {
 
@@ -24,6 +28,7 @@ class TvShowListBackend: TvShowListRepository.TvShowListBackendContract {
     private val service = ServiceLocator.retrofit.create(TmdbShowlistApi::class.java)
 
     override fun fetchPopularShows(page: Int): List<TvShowListRepository.TvShow> {
+
         return getPopularTvShowsByPage(page).map {
             TvShowListRepository.TvShow(
                 id = it.id,
@@ -34,6 +39,7 @@ class TvShowListBackend: TvShowListRepository.TvShowListBackendContract {
     }
 
     private fun getPopularTvShowsByPage(page: Int) : List<GetPopularShows.ResponseBody.TvShowInfo> {
+
         val request = service.getShowsPopular(apiKey, page)
         val response = request.execute()
         return response.body()?.shows

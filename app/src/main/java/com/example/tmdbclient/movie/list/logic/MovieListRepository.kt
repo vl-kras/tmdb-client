@@ -1,4 +1,4 @@
-package com.example.tmdbclient.movie.list
+package com.example.tmdbclient.movie.list.logic
 
 class MovieListRepository(private val backend: MovieListBackendContract) {
 

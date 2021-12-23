@@ -1,9 +1,9 @@
-package com.example.tmdbclient
+package com.example.tmdbclient.shared
 
 import com.example.tmdbclient.movie.details.MovieDetailsBackend
 import com.example.tmdbclient.movie.details.MovieDetailsRepository
 import com.example.tmdbclient.movie.list.MovieListBackend
-import com.example.tmdbclient.movie.list.MovieListRepository
+import com.example.tmdbclient.movie.list.logic.MovieListRepository
 import com.example.tmdbclient.profile.ProfileBackend
 import com.example.tmdbclient.profile.ProfileRepository
 import com.example.tmdbclient.tvshow.details.TvShowDetailsBackend

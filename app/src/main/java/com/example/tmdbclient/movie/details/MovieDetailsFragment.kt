@@ -13,7 +13,7 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.example.tmdbclient.R
-import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_ORIGINAL
+import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_ORIGINAL
 import com.example.tmdbclient.databinding.FragmentMovieDetailsBinding
 import com.example.tmdbclient.profile.ProfileState
 import com.example.tmdbclient.profile.ProfileViewModel
@@ -121,7 +121,7 @@ class MovieDetailsFragment : Fragment() {
 
     private fun setMovieRuntime(movie: MovieDetailsRepository.MovieDetails) {
 
-        if (movie.runtime == 0) {
+        if (movie.runtime != 0) {
             binding.runtime.text = movie.runtime.let { runtime ->
                 //runtime is in minutes, convert it to "X hours Y minutes" format
                 StringBuilder()

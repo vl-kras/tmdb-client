@@ -1,7 +1,7 @@
 package com.example.tmdbclient.movie.details
 
 import androidx.lifecycle.*
-import com.example.tmdbclient.ServiceLocator
+import com.example.tmdbclient.shared.ServiceLocator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.SocketTimeoutException

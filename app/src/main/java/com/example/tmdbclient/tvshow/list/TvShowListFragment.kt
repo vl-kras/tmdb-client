@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.tmdbclient.R
-import com.example.tmdbclient.TmdbBasePaths.TMDB_POSTER_W300
+import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_W300
 import com.example.tmdbclient.databinding.FragmentTvshowListBinding
 
 class ShowListAdapter(

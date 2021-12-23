@@ -1,4 +1,4 @@
-package com.example.tmdbclient
+package com.example.tmdbclient.shared
 
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
@@ -10,6 +10,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
+import com.example.tmdbclient.R
 import com.example.tmdbclient.databinding.ActivityMainBinding
 import com.example.tmdbclient.profile.ProfileState
 import com.example.tmdbclient.profile.ProfileViewModel

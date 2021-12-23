@@ -14,7 +14,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.example.tmdbclient.MainActivity.Companion.SESSION_ID_TAG
+import com.example.tmdbclient.shared.MainActivity.Companion.SESSION_ID_TAG
 import com.example.tmdbclient.databinding.FragmentProfileBinding
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch

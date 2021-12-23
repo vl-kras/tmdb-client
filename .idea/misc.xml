@@ -24,6 +24,8 @@
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/layout/view_user_card.xml" value="0.1" />
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/menu/menu_navview.xml" value="0.1" />
         <entry key="..\:/Users/kimer/AndroidStudioProjects/TmdbClient/app/src/main/res/menu/movie_details_toolbar.xml" value="0.1" />
+        <entry key="app/src/main/res/layout/fragment_movie_details.xml" value="0.23233695652173914" />
+        <entry key="app/src/main/res/layout/load_more_viewholder.xml" value="0.23233695652173914" />
       </map>
     </option>
   </component>

@@ -13,7 +13,7 @@
 
     <fragment
         android:id="@+id/movieListFragment"
-        android:name="com.example.tmdbclient.movie.list.MovieListFragment"
+        android:name="com.example.tmdbclient.movie.list.ui.MovieListFragment"
         android:label="Movies"
         tools:layout="@layout/fragment_movie_list" >
         <action
