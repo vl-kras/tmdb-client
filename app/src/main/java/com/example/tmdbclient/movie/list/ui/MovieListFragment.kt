@@ -9,9 +9,15 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.ConcatAdapter
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.tmdbclient.shared.PagingFooterAdapter
 import com.example.tmdbclient.databinding.FragmentMovieListBinding
+import com.example.tmdbclient.movie.list.logic.MovieListRepository
+import com.example.tmdbclient.tvshow.details.TvShowDetailsState
+import com.google.android.material.snackbar.Snackbar
+import kotlin.properties.Delegates
+import kotlin.reflect.KProperty
 
 
 //TODO add Paging
@@ -22,12 +28,20 @@ class MovieListFragment : Fragment() {
     private var _binding: FragmentMovieListBinding? = null
     private val binding get() = _binding ?: throw IllegalStateException("Binding does not exist")
 
-//    private val onMovieClick: (MovieListRepository.Movie) -> Unit =
+    // FIXME: 24-Dec-21  
+//    private val viewBinding: FragmentMovieListBinding by viewBinding(FragmentMovieListBinding::inflate)
 
     private val contentAdapter: MovieListAdapter by lazy {
         MovieListAdapter(emptyList()) { movie ->
             val action = MovieListFragmentDirections.showMovieDetails(movie.id)
             findNavController().navigate(action)
+        }
+    }
+
+    private val footerAdapter: PagingFooterAdapter by lazy {
+        PagingFooterAdapter {
+            val action = MovieListState.Action.LoadMore
+            listViewModel.handleAction(action)
         }
     }
 
@@ -51,12 +65,7 @@ class MovieListFragment : Fragment() {
 
         binding.movieList.layoutManager = GridLayoutManager(context, 2)
 
-        val onFooterClick: () -> Unit = {
-            val action = MovieListState.Action.LoadMore
-            listViewModel.handleAction(action)
-        }
 
-        val footerAdapter = PagingFooterAdapter(onFooterClick)
         binding.movieList.adapter = ConcatAdapter(contentAdapter, footerAdapter)
 
         listViewModel.getMovies().observe(viewLifecycleOwner) { state ->
@@ -78,16 +87,21 @@ class MovieListFragment : Fragment() {
     private fun configureViews(state: MovieListState) {
 
         when (state) {
-            is MovieListState.Initial -> {
+            is InitialState -> {
                 val action = MovieListState.Action.LoadInitial
                 listViewModel.handleAction(action)
             }
-            is MovieListState.Display -> {
-
+            is Display -> {
+                val oldSize = contentAdapter.itemCount
                 contentAdapter.movies = state.movies
-                contentAdapter.notifyItemRangeInserted(contentAdapter.itemCount, 20)
+                val newSize = contentAdapter.itemCount
+                contentAdapter.notifyItemRangeInserted(oldSize, newSize-oldSize)
+
+                state.error?.let { exception ->
+                    Snackbar.make(view!!, exception.message ?: "Something went wrong", Snackbar.LENGTH_SHORT).show()
+                }
             }
-            is MovieListState.Error -> {
+            is Error -> {
                 binding.statusMessage.text = state.exception.localizedMessage
             }
         }
@@ -96,12 +110,12 @@ class MovieListFragment : Fragment() {
     private fun displayState(state: MovieListState) {
 
         with(binding) {
-            movieList.isVisible = state is MovieListState.Display
+            movieList.isVisible = state is Display
 
-            loadingIndicator.isVisible = state is MovieListState.Loading
+            loadingIndicator.isVisible = listViewModel.isLoading()
 
-            retryButton.isVisible = state is MovieListState.Error
-            statusMessage.isVisible = state is MovieListState.Error
+            retryButton.isVisible = state is Error
+            statusMessage.isVisible = state is Error
         }
     }
 }
