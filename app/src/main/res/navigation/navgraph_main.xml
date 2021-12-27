@@ -24,8 +24,7 @@
     <fragment
         android:id="@+id/tvShowListFragment"
         android:name="com.example.tmdbclient.tvshow.list.TvShowListFragment"
-        android:label="TV Shows"
-        tools:layout="@layout/fragment_tvshow_list" >
+        android:label="TV Shows">
         <argument
             android:name="movieId"
             app:argType="integer" />

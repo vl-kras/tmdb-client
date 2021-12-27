@@ -33,7 +33,7 @@ class TvShowListBackend: TvShowListRepository.TvShowListBackendContract {
             TvShowListRepository.TvShow(
                 id = it.id,
                 title = it.name,
-                posterPath = it.posterPath
+                posterPath = it.posterPath ?: ""
             )
         }
     }
@@ -57,7 +57,7 @@ object GetPopularShows {
     ) {
 
         data class TvShowInfo (
-            @SerializedName("poster_path") val posterPath : String,
+            @SerializedName("poster_path") val posterPath : String?,
             @SerializedName("popularity") val popularity : Double,
             @SerializedName("id") val id : Int,
             @SerializedName("backdrop_path") val backdropPath : String,

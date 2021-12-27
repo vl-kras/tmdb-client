@@ -3,7 +3,11 @@ package com.example.tmdbclient.shared
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
@@ -14,6 +18,7 @@ import com.example.tmdbclient.R
 import com.example.tmdbclient.databinding.ActivityMainBinding
 import com.example.tmdbclient.profile.ProfileState
 import com.example.tmdbclient.profile.ProfileViewModel
+import com.example.tmdbclient.shared.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -53,6 +58,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+//        setContent {
+//            MyApplicationTheme {
+//                Surface(color = MaterialTheme.colors.background) {
+//                    Text(text = "Hello Compose!")
+//                }
+//            }
+//
+//        }
     }
 
     override fun onSupportNavigateUp(): Boolean {
