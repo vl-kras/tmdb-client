@@ -8,14 +8,12 @@
     <fragment
         android:id="@+id/profileFragment"
         android:name="com.example.tmdbclient.profile.ProfileFragment"
-        android:label="Profile"
-        tools:layout="@layout/fragment_profile" />
+        android:label="Profile"/>
 
     <fragment
         android:id="@+id/movieListFragment"
         android:name="com.example.tmdbclient.movie.list.ui.MovieListFragment"
-        android:label="Movies"
-        tools:layout="@layout/fragment_movie_list" >
+        android:label="Movies">
         <action
             android:id="@+id/show_movie_details"
             app:destination="@id/movieDetailsFragment" />

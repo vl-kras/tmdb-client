@@ -1,121 +1,265 @@
 package com.example.tmdbclient.movie.list.ui
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.isVisible
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.GridCells
+import androidx.compose.foundation.lazy.LazyVerticalGrid
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.ConcatAdapter
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.GridLayoutManager
-import com.example.tmdbclient.shared.PagingFooterAdapter
-import com.example.tmdbclient.databinding.FragmentMovieListBinding
 import com.example.tmdbclient.movie.list.logic.MovieListRepository
-import com.example.tmdbclient.tvshow.details.TvShowDetailsState
-import com.google.android.material.snackbar.Snackbar
-import kotlin.properties.Delegates
-import kotlin.reflect.KProperty
+import com.example.tmdbclient.shared.TmdbBasePaths
+import com.example.tmdbclient.shared.theme.MyApplicationTheme
+import com.example.tmdbclient.tvshow.list.TvShowListFragmentDirections
+import com.example.tmdbclient.tvshow.list.TvShowListState
+import com.example.tmdbclient.tvshow.list.TvShowListViewModel
+import com.skydoves.landscapist.glide.GlideImage
+import kotlinx.coroutines.launch
 
-
-//TODO add Paging
 class MovieListFragment : Fragment() {
 
-    private val listViewModel : MovieListViewModel by viewModels()
-
-    private var _binding: FragmentMovieListBinding? = null
-    private val binding get() = _binding ?: throw IllegalStateException("Binding does not exist")
-
-    // FIXME: 24-Dec-21  
-//    private val viewBinding: FragmentMovieListBinding by viewBinding(FragmentMovieListBinding::inflate)
-
-    private val contentAdapter: MovieListAdapter by lazy {
-        MovieListAdapter(emptyList()) { movie ->
-            val action = MovieListFragmentDirections.showMovieDetails(movie.id)
-            findNavController().navigate(action)
-        }
-    }
-
-    private val footerAdapter: PagingFooterAdapter by lazy {
-        PagingFooterAdapter {
-            val action = MovieListState.Action.LoadMore
-            listViewModel.handleAction(action)
-        }
-    }
-
+    @ExperimentalMaterialApi
+    @ExperimentalFoundationApi
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
 
-        _binding = FragmentMovieListBinding.inflate(inflater, container, false)
-        return _binding!!.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        binding.retryButton.setOnClickListener {
-
-            listViewModel.handleAction(MovieListState.Action.LoadInitial)
-        }
-
-        binding.movieList.layoutManager = GridLayoutManager(context, 2)
-
-
-        binding.movieList.adapter = ConcatAdapter(contentAdapter, footerAdapter)
-
-        listViewModel.getMovies().observe(viewLifecycleOwner) { state ->
-
-            observeStateChanges(state)
-        }
-    }
-
-    override fun onDestroyView() {
-        _binding = null
-        super.onDestroyView()
-    }
-
-    private fun observeStateChanges(state: MovieListState) {
-        configureViews(state)
-        displayState(state)
-    }
-
-    private fun configureViews(state: MovieListState) {
-
-        when (state) {
-            is InitialState -> {
-                val action = MovieListState.Action.LoadInitial
-                listViewModel.handleAction(action)
-            }
-            is Display -> {
-                val oldSize = contentAdapter.itemCount
-                contentAdapter.movies = state.movies
-                val newSize = contentAdapter.itemCount
-                contentAdapter.notifyItemRangeInserted(oldSize, newSize-oldSize)
-
-                state.error?.let { exception ->
-                    Snackbar.make(view!!, exception.message ?: "Something went wrong", Snackbar.LENGTH_SHORT).show()
+        return ComposeView(requireContext()).apply {
+            setContent {
+                MyApplicationTheme {
+                    MovieList()
                 }
             }
+        }
+    }
+
+    @ExperimentalFoundationApi
+    @ExperimentalMaterialApi
+    @Composable
+    fun MovieList(
+        viewModel: MovieListViewModel = viewModel()
+    ) {
+        val uiState by viewModel.getMovies().observeAsState()
+
+        when (uiState) {
+            is InitialState -> {
+                LoadingState()
+            }
+            is Display -> {
+                DisplayState(state = uiState as Display)
+            }
             is Error -> {
-                binding.statusMessage.text = state.exception.localizedMessage
+                ErrorState(state = uiState as Error)
             }
         }
     }
 
-    private fun displayState(state: MovieListState) {
 
-        with(binding) {
-            movieList.isVisible = state is Display
+    @Composable
+    fun LoadingState() {
 
-            loadingIndicator.isVisible = listViewModel.isLoading()
+        CircularProgressIndicator()
 
-            retryButton.isVisible = state is Error
-            statusMessage.isVisible = state is Error
+        val viewModel: MovieListViewModel = viewModel()
+
+        LaunchedEffect(key1 = Unit) {
+
+            val action = MovieListState.Action.LoadInitial
+            viewModel.handleAction(action)
+        }
+    }
+
+    @ExperimentalMaterialApi
+    @ExperimentalFoundationApi
+    @Composable
+    fun DisplayState(state: Display) {
+
+        val viewModel: MovieListViewModel = viewModel()
+
+        val listState = rememberLazyListState() // ???
+
+        val snackbarHostState = remember { SnackbarHostState() }
+
+        val coroutineScope = rememberCoroutineScope()
+
+        val error by remember { mutableStateOf(state.error) }
+
+        state.error?.let {
+            LaunchedEffect(key1 = state.error) {
+                snackbarHostState.showSnackbar(
+                    message = it.message ?: "Something went wrong"
+                )
+            }
+        }
+
+        val showButton by remember {
+            derivedStateOf {
+                listState.firstVisibleItemIndex > 0
+            }
+        }
+
+        val columnCount = 2
+
+        var run by remember { mutableStateOf(false) }
+        if((listState.firstVisibleItemIndex > state.movies.size.div(columnCount).minus(5)) and (state.error != null)) {
+            run = true
+        }
+
+        var isLoadingMore: Boolean by remember { mutableStateOf(false) }
+
+        Log.d("BLABLA", "Index -> ${listState.firstVisibleItemIndex}, Size -> ${state.movies.size}, Should load more -> $run")
+        if(run) {
+
+            SideEffect {
+
+
+                coroutineScope.launch {
+                    isLoadingMore = true
+                    val action = MovieListState.Action.LoadMore
+                    viewModel.handleAction(action)
+                    isLoadingMore = false
+                }
+
+            }
+
+//            run = false
+        }
+
+
+        LazyVerticalGrid(state = listState, cells = GridCells.Fixed(columnCount)) {
+            items(state.movies) { movie ->
+                ContentItem(movie)
+            }
+            item {
+                ListFooter(state.error, isLoadingMore)
+
+            }
+        }
+        SnackbarHost(hostState = snackbarHostState)
+
+        AnimatedVisibility(visible = showButton) {
+            Box {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(index = 0)
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                ) {
+                    Text(text = "Scroll to top")
+                }
+            }
+        }
+    }
+
+
+    @ExperimentalMaterialApi
+    @Composable
+    fun ContentItem(movie: MovieListRepository.Movie) {
+
+        val onShowClick = {
+            val action = MovieListFragmentDirections.showMovieDetails(movie.id)
+            findNavController().navigate(action)
+        }
+
+        Card(onClick = onShowClick, modifier = Modifier.padding(4.dp)) {
+            Column {
+                GlideImage(
+                    imageModel = TmdbBasePaths.TMDB_POSTER_W300 + movie.posterPath,
+                )
+                Text(
+                    text = movie.title,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun ListFooter(error: Exception?, isLoadingMore: Boolean) {
+
+        Log.d("FOOTER", "Loading more -> $isLoadingMore")
+
+        val coroutineScope = rememberCoroutineScope()
+
+//        var isLoadingMore: Boolean by remember { mutableStateOf(false) }
+
+        val viewModel: MovieListViewModel = viewModel()
+
+        if (isLoadingMore.not()) {
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                val buttonText: String = if (error != null) {
+                    Text(text = "${error.message}") //  <------ !!!
+                    "Retry"
+                } else {
+                    "Load more"
+                }
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+//                            isLoadingMore = true
+                            val action = MovieListState.Action.LoadMore
+                            viewModel.handleAction(action)
+//                            isLoadingMore = false
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text(text = buttonText)
+                }
+            }
+        } else {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+            )
+        }
+    }
+
+    @Composable
+    fun ErrorState(state: Error) {
+
+        val coroutineScope = rememberCoroutineScope()
+
+        val viewModel: MovieListViewModel = viewModel()
+
+        Column {
+            Text(
+                text = state.exception.message
+                    ?: "Something went wrong"
+            )
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        val action = MovieListState.Action.LoadInitial
+                        viewModel.handleAction(action)
+                    }
+
+                }
+            ) {
+                Text(text = "Try again")
+            }
         }
     }
 }

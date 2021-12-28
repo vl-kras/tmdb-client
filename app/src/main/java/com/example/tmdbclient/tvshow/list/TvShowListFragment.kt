@@ -1,15 +1,13 @@
 package com.example.tmdbclient.tvshow.list
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -17,6 +15,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -27,6 +26,8 @@ import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.coroutines.launch
 
 class TvShowListFragment : Fragment() {
+
+    //TODO switch to ui-domain-data package structure
 
     @ExperimentalFoundationApi
     @ExperimentalMaterialApi
@@ -66,32 +67,19 @@ class TvShowListFragment : Fragment() {
         }
     }
 
-    /* TODO refactor model into single class type
-     * if (hasContent)
-     *     show content
-     *     if (hasError)
-     *         showError as snackbar
-     * else
-     *     if (hasError)
-     *         showError as text + retryButton
-     *     else
-     *        startLoadingItems (cause it's initial state)
-     *
-     */
 
     @Composable
     fun LoadingState() {
 
+        CircularProgressIndicator()
+
         val viewModel: TvShowListViewModel = viewModel()
 
-        LaunchedEffect(key1 = "") {
+        LaunchedEffect(key1 = Unit) {
 
-                val action = TvShowListState.Action.Load
-                viewModel.handleAction(action)
-
+            val action = TvShowListState.Action.Load
+            viewModel.handleAction(action)
         }
-
-        CircularProgressIndicator(modifier = Modifier.defaultMinSize())
     }
 
     @ExperimentalMaterialApi
@@ -101,20 +89,13 @@ class TvShowListFragment : Fragment() {
 
         val viewModel: TvShowListViewModel = viewModel()
 
-        LaunchedEffect(key1 = "") {
-
-            val action = TvShowListState.Action.Load
-            viewModel.handleAction(action)
-
-        }
-
         val listState = rememberLazyListState() // ???
 
         val snackbarHostState = remember { SnackbarHostState() }
 
         val coroutineScope = rememberCoroutineScope()
 
-        val error = state.error
+        val error by remember { mutableStateOf(state.error) }
 
         state.error?.let {
             LaunchedEffect(key1 = state.error) {
@@ -130,14 +111,41 @@ class TvShowListFragment : Fragment() {
             }
         }
 
-        //TODO replace with lazyColumn styled as grid
+        val columnCount = 2
 
-        LazyVerticalGrid(state = listState, cells = GridCells.Fixed(2)) {
+        var run by remember { mutableStateOf(false) }
+        if((listState.firstVisibleItemIndex > state.content.size.div(columnCount).minus(5)) and (state.error != null)) {
+            run = true
+        }
+
+        var isLoadingMore: Boolean by remember { mutableStateOf(false) }
+
+        Log.d("BLABLA", "Index -> ${listState.firstVisibleItemIndex}, Size -> ${state.content.size}, Should load more -> $run")
+        if(run) {
+
+            SideEffect {
+
+
+                coroutineScope.launch {
+                    isLoadingMore = true
+                    val action = TvShowListState.Action.LoadMore
+                    viewModel.handleAction(action)
+                    isLoadingMore = false
+                }
+
+            }
+
+//            run = false
+        }
+
+
+        LazyVerticalGrid(state = listState, cells = GridCells.Fixed(columnCount)) {
             items(state.content) { show ->
                 ContentItem(show)
             }
             item {
-                ListFooter()
+                ListFooter(state.error, isLoadingMore)
+
             }
         }
         SnackbarHost(hostState = snackbarHostState)
@@ -169,43 +177,58 @@ class TvShowListFragment : Fragment() {
 
         Card(onClick = onShowClick, modifier = Modifier.padding(4.dp)) {
             Column {
-                LaunchedEffect(key1 = show) {
-                    launch {  }
-                }
-                GlideImage(imageModel = TMDB_POSTER_W300 + show.posterPath)
-                Text(text = show.title, modifier = Modifier.align(Alignment.CenterHorizontally))
+                GlideImage(
+                    imageModel = TMDB_POSTER_W300 + show.posterPath,
+                )
+                Text(
+                    text = show.title,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                )
             }
         }
     }
 
     @Composable
-    fun ListFooter() {
+    fun ListFooter(error: Exception?, isLoadingMore: Boolean) {
+
+        Log.d("FOOTER", "Loading more -> $isLoadingMore")
 
         val coroutineScope = rememberCoroutineScope()
 
-        var isLoadingMore: Boolean? by remember { mutableStateOf(false) }
+//        var isLoadingMore: Boolean by remember { mutableStateOf(false) }
 
-        isLoadingMore?.let { isLoading ->
-            if (isLoading.not()) {
-                val viewModel: TvShowListViewModel = viewModel()
+        val viewModel: TvShowListViewModel = viewModel()
+
+        if (isLoadingMore.not()) {
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                val buttonText: String = if (error != null) {
+                    Text(text = "${error.message}") //  <------ !!!
+                    "Retry"
+                } else {
+                    "Load more"
+                }
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            isLoadingMore = true
-//                        delay(1000)
+//                            isLoadingMore = true
                             val action = TvShowListState.Action.LoadMore
                             viewModel.handleAction(action)
-                            isLoadingMore = false
+//                            isLoadingMore = false
                         }
-
-                    }
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
-                    Text(text = "Load more")
+                    Text(text = buttonText)
                 }
             }
-            else {
-                LinearProgressIndicator()
-            }
+        } else {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+            )
         }
     }
 
@@ -213,7 +236,6 @@ class TvShowListFragment : Fragment() {
     fun ErrorState(state: TvShowListState.Error) {
 
         val coroutineScope = rememberCoroutineScope()
-
 
         val viewModel: TvShowListViewModel = viewModel()
 

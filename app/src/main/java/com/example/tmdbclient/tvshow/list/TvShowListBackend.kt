@@ -1,6 +1,8 @@
 package com.example.tmdbclient.tvshow.list
 
+import android.util.Log
 import com.example.tmdbclient.BuildConfig
+import com.example.tmdbclient.shared.ApiError
 import com.example.tmdbclient.shared.ServiceLocator
 import com.google.gson.annotations.SerializedName
 import okhttp3.ResponseBody
@@ -42,10 +44,15 @@ class TvShowListBackend: TvShowListRepository.TvShowListBackendContract {
 
         val request = service.getShowsPopular(apiKey, page)
         val response = request.execute()
+        val error = response.errorBody()?.let { ApiError.from(it) }
+        Log.d("BLABLA", error.toString())
+
         return response.body()?.shows
-            ?: throw IOException("Failed to fetch popular shows")
+            ?: throw IOException("Failed to fetch popular shows, page -> $page")
     }
 }
+
+class EndOfPaginationReachedException(message: String): Exception(message)
 
 object GetPopularShows {
 

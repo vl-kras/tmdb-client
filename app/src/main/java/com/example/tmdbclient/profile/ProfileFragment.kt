@@ -1,34 +1,35 @@
 package com.example.tmdbclient.profile
 
 import android.content.Context
-import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.LinearLayout
-import androidx.appcompat.app.AlertDialog
-import androidx.core.content.edit
-import androidx.core.view.isVisible
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material.*
+import androidx.compose.material.Button
+import androidx.compose.material.Text
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
-import com.example.tmdbclient.shared.MainActivity.Companion.SESSION_ID_TAG
-import com.example.tmdbclient.databinding.FragmentProfileBinding
-import com.google.android.material.snackbar.Snackbar
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.tmdbclient.shared.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
 
+val Context.datastore: DataStore<Preferences> by preferencesDataStore(name = "cookies")
+val SESSION_ID_KEY = stringPreferencesKey("session_id")
 
 // tries to be Humble (mostly responsible for drawing the UI)
 class ProfileFragment : Fragment() {
 
     //TODO make destination fragment from here
-
-    private val viewModel: ProfileViewModel by activityViewModels()
-
-    //binding is not-null when fragment's View exists
-    private var binding: FragmentProfileBinding? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,130 +37,200 @@ class ProfileFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
 
-        binding = FragmentProfileBinding.inflate(inflater)
-        return binding!!.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        with(binding!!) {
-            signInButton.setOnClickListener{
-                createSignInDialog().show()
+        return ComposeView(requireContext()).apply {
+            setContent {
+                MyApplicationTheme {
+                    ProfileScreen()
+                }
             }
-            signOutButton.setOnClickListener {
-                createSignOutDialog().show()
-            }
-        }
-
-        //display user state
-        viewModel.getProfile().observe(viewLifecycleOwner) { user ->
-            if (user is ProfileState.UserState) {
-                displayProfileDetails(user)
-                storeSessionId(user.sessionId)
-            }
-            displayState(user)
         }
     }
 
-    override fun onDestroyView() {
-        binding = null
-        super.onDestroyView()
+    @Composable
+    fun ProfileScreen() {
+        val viewModel: ProfileViewModel = viewModel()
+
+        val uiState by viewModel.getProfile().observeAsState()
+
+        when (uiState) {
+            is ProfileState.EmptyState -> {
+                NoProfile()
+            }
+            is ProfileState.UserState -> {
+                ActiveUser(state = uiState as ProfileState.UserState)
+            }
+        }
     }
 
-    private fun createSignInDialog(): AlertDialog {
+    @Composable
+    fun ActiveUser(state: ProfileState.UserState) {
 
-        val usernameInput = EditText(context).apply {
-            hint = "Username"
+        var showDialog by remember { mutableStateOf(false) }
+
+        val coroutineScope = rememberCoroutineScope()
+
+        SideEffect {
+            coroutineScope.launch {
+                context?.datastore?.edit { cookies ->
+                    cookies[SESSION_ID_KEY] = state.sessionId
+                }
+            }
         }
-        val passwordInput = EditText(context).apply {
-            hint = "Password"
+
+        Column {
+            Text(text = state.sessionId)
+            Text(text = state.username)
+            Text(text = state.name)
+            Button(
+                onClick = {
+                    showDialog = true
+                }
+            ) {
+                Text(text = "Sign out")
+            }
         }
-        val dialogView = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(usernameInput)
-            addView(passwordInput)
+        SignOutDialog(showDialog, onChanged = { showDialog = it })
+    }
+
+    @Composable
+    fun SignOutDialog(showDialog: Boolean, onChanged: (Boolean) -> Unit) {
+
+        val viewModel: ProfileViewModel = viewModel()
+
+        val coroutineScope = rememberCoroutineScope()
+
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { onChanged(false) },
+                text = {
+                    Text(text = "Are you sure you want to sign out?")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                viewModel.handleAction(
+                                    ProfileState.Action.SignOut
+                                )
+                                context?.datastore?.edit { cookies ->
+                                    // delete stored session ID
+                                    cookies.remove(SESSION_ID_KEY)
+                                }
+                            }
+                        }
+                    ) {
+                        Text(text = "Confirm")
+                    }
+                },
+                dismissButton = { DialogCancelButton(onChanged) }
+            )
         }
-        return AlertDialog.Builder(requireContext())
-            .setTitle("Your TMDB credentials")
-            .setView(dialogView)
-            .setPositiveButton("Sign in") { _, _ ->
-                val action = ProfileState.Action.SignIn(
-                    username = usernameInput.text.toString(),
-                    password = passwordInput.text.toString()
+    }
+
+    @Composable
+    fun NoProfile() {
+
+        var openDialog by remember { mutableStateOf(false) }
+        val viewModel: ProfileViewModel = viewModel()
+
+        LaunchedEffect(key1 = Unit) {
+            context?.datastore?.edit { cookies ->
+                // if there is stored session id, then restore session with it
+                cookies[SESSION_ID_KEY]?.let { sessionId ->
+                    viewModel.handleAction(ProfileState.Action.Restore(sessionId))
+                }
+            }
+        }
+
+        Column {
+            Text(text = "You are not signed in")
+            Button(
+                onClick = {
+                    openDialog = true
+                }
+            ) {
+                Text(text = "Sign in")
+            }
+        }
+        SignInDialog(openDialog, onChanged = { openDialog = it })
+    }
+}
+
+@Composable
+fun SignInDialog(openDialog: Boolean, onChanged: (Boolean) -> Unit) {
+
+    var login by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    if (openDialog) {
+        AlertDialog(
+            onDismissRequest = { onChanged(false) },
+            title = { Text(text = "Input your TMDB credentials") },
+            text = {
+                Column {
+                    LoginInput(login, onChanged = { login = it })
+                    PasswordInput(password, onChanged = { password = it })
+                }
+            },
+            confirmButton = {
+                ConfirmButton(login, password)
+            },
+            dismissButton = {
+                DialogCancelButton(onChanged)
+            }
+        )
+    }
+}
+
+@Composable
+fun LoginInput(login: String, onChanged: (String) -> Unit) {
+    TextField(
+        label = { Text(text = "Login") },
+        value = login,
+        onValueChange = { onChanged(it) }
+    )
+}
+
+@Composable
+fun PasswordInput(password: String, onChanged: (String) -> Unit) {
+    TextField(
+        label = { Text(text = "Password") },
+        value = password,
+        onValueChange = { onChanged(it) },
+        visualTransformation = PasswordVisualTransformation('*')
+    )
+}
+
+@Composable
+fun ConfirmButton(login: String, password: String) {
+
+    val viewModel: ProfileViewModel = viewModel()
+    val coroutineScope = rememberCoroutineScope()
+
+    val onClick: () -> Unit = {
+        coroutineScope.launch {
+            viewModel.handleAction(
+                ProfileState.Action.SignIn(
+                    username = login,
+                    password = password
                 )
-                lifecycleScope.launch {
-                    viewModel.handleAction(action)
-                }
-            }
-            .setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
-            .create()
-
-    }
-
-    private fun createSignOutDialog(): AlertDialog {
-        return AlertDialog.Builder(requireContext())
-            .setTitle("Confirm signing out")
-            .setPositiveButton("Confirm", getSignOutDialogPositiveAction())
-            .setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
-            .create()
-    }
-
-    private fun getSignOutDialogPositiveAction(): DialogInterface.OnClickListener {
-        return DialogInterface.OnClickListener { _, _ ->
-
-            val message: String = try {
-                lifecycleScope.launch {
-                    viewModel.handleAction(ProfileState.Action.SignOut)
-                }
-                "Signed out successfully"
-            } catch (e: IllegalStateException) {
-                "Failed to sign out correctly"
-            }
-            Snackbar.make(requireView(), message, Snackbar.LENGTH_SHORT).show()
-
-            //remove session cookies from persistent storage
-            val prefs = requireActivity().getPreferences(Context.MODE_PRIVATE)
-            prefs.edit {
-                remove(SESSION_ID_TAG)
-            }
+            )
         }
     }
-
-    private fun storeSessionId(sessionId: String) {
-        val prefs = requireActivity().getPreferences(Context.MODE_PRIVATE)
-        val storedSession = prefs.getString(SESSION_ID_TAG, null)
-        if (sessionId != storedSession) {
-            prefs.edit {
-                putString(SESSION_ID_TAG, sessionId)
-            }
-        }
+    TextButton(
+        onClick = onClick
+    ) {
+        Text(text = "Sign in")
     }
+}
 
-    private fun displayProfileDetails(userState: ProfileState.UserState) {
-        with(binding!!) {
-            sessionId.text = userState.sessionId
-            accountId.text = userState.userId.toString()
-            accountName.text = userState.name
-            accountUsername.text = userState.username
+@Composable
+fun DialogCancelButton(onChanged: (Boolean) -> Unit) {
+    TextButton(
+        onClick = {
+            onChanged(false)
         }
-    }
-
-    private fun displayState(state: ProfileState) {
-        with(binding!!) {
-            loadingIndicator.isVisible = state is ProfileState.Loading
-
-            sessionId.isVisible = state is ProfileState.UserState
-            accountId.isVisible = state is ProfileState.UserState
-            accountName.isVisible = state is ProfileState.UserState
-            accountUsername.isVisible = state is ProfileState.UserState
-
-            signOutButton.isVisible = state is ProfileState.UserState
-            signInButton.isVisible = (state is ProfileState.EmptyState) or (state is ProfileState.Error)
-
-            if (state is ProfileState.Error) {
-                Snackbar.make(view!!, state.exception.message.toString(), Snackbar.LENGTH_SHORT).show()
-            }
-        }
+    ) {
+        Text(text = "Cancel")
     }
 }

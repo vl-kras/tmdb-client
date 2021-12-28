@@ -3,7 +3,7 @@ package com.example.tmdbclient.movie.details
 import androidx.lifecycle.*
 import com.example.tmdbclient.shared.ServiceLocator
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.SocketTimeoutException
 import kotlin.Exception
 
@@ -13,14 +13,14 @@ class MovieDetailsViewModel: ViewModel() {
 
     fun getState(): LiveData<MovieDetailsState> = state
 
-    fun handleAction(action: MovieDetailsState.Action) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val oldState = state.value!!
-            state.postValue(MovieDetailsState.Loading)
-            val newState = oldState.handle(action)
-            state.postValue(newState)
+    suspend fun handleAction(action: MovieDetailsState.Action) {
+        val oldState = state.value!!
+        val newState = withContext(Dispatchers.IO) {
+            oldState.handle(action)
         }
+        state.postValue(newState)
     }
+
 }
 
 sealed class MovieDetailsState {

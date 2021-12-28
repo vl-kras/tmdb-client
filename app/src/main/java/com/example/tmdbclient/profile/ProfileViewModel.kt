@@ -6,8 +6,6 @@ import androidx.lifecycle.ViewModel
 import com.example.tmdbclient.shared.ServiceLocator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.net.SocketTimeoutException
 
 
 class ProfileViewModel : ViewModel() {
@@ -16,20 +14,11 @@ class ProfileViewModel : ViewModel() {
     private var profile: MutableLiveData<ProfileState> = MutableLiveData(ProfileState.EmptyState)
 
     suspend fun handleAction(action: ProfileState.Action) {
-        try {
             val oldState = profile.value!!
-            profile.postValue(ProfileState.Loading)
             val newState = withContext(ioDispatcher) {
                 oldState.handle(action)
             }
             profile.postValue(newState)
-        }
-        catch (e: IOException) {
-            profile.postValue(ProfileState.Error(e))
-        }
-        catch (e: SocketTimeoutException) {
-            profile.postValue(ProfileState.Error(e))
-        }
     }
 
     fun getProfile(): LiveData<ProfileState> = profile
@@ -99,9 +88,9 @@ sealed class ProfileState {
         }
     }
 
-    object Loading : ProfileState() {
-        override fun handle(action: Action): ProfileState = this
-    }
+//    object Loading : ProfileState() {
+//        override fun handle(action: Action): ProfileState = this
+//    }
 
     class Error(val exception: Exception): ProfileState() {
 

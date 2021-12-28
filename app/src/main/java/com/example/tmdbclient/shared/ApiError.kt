@@ -1,12 +1,13 @@
 package com.example.tmdbclient.shared
 
+import com.google.gson.annotations.SerializedName
 import okhttp3.ResponseBody
 import retrofit2.Converter
 import java.io.IOException
 
 data class ApiError(
-    val statusCode: Int,
-    val statusMessage: String
+    @SerializedName("status_code") val statusCode: Int,
+    @SerializedName("status_message")val statusMessage: String
 ): IOException(statusMessage) {
     companion object {
 
