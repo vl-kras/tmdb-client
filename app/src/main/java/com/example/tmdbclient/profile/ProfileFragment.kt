@@ -19,15 +19,18 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.fragment.app.activityViewModels
+import com.example.tmdbclient.shared.SESSION_ID_KEY
+import com.example.tmdbclient.shared.datastore
 import com.example.tmdbclient.shared.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
 
-val Context.datastore: DataStore<Preferences> by preferencesDataStore(name = "cookies")
-val SESSION_ID_KEY = stringPreferencesKey("session_id")
+
 
 // tries to be Humble (mostly responsible for drawing the UI)
 class ProfileFragment : Fragment() {
+
+//    val viewModel: ProfileViewModel by activityViewModels()
 
     //TODO make destination fragment from here
 
@@ -40,124 +43,131 @@ class ProfileFragment : Fragment() {
         return ComposeView(requireContext()).apply {
             setContent {
                 MyApplicationTheme {
-                    ProfileScreen()
+//                    ProfileScreen()
                 }
             }
         }
     }
 
-    @Composable
-    fun ProfileScreen() {
-        val viewModel: ProfileViewModel = viewModel()
 
-        val uiState by viewModel.getProfile().observeAsState()
+}
 
-        when (uiState) {
-            is ProfileState.EmptyState -> {
-                NoProfile()
-            }
-            is ProfileState.UserState -> {
-                ActiveUser(state = uiState as ProfileState.UserState)
-            }
+@Composable
+fun ProfileScreen(profileVM: ProfileViewModel, context: Context) {
+
+    val uiState by profileVM.getProfile().observeAsState()
+
+    when (uiState) {
+        is ProfileState.EmptyState -> {
+            NoProfile(context, profileVM)
         }
-    }
-
-    @Composable
-    fun ActiveUser(state: ProfileState.UserState) {
-
-        var showDialog by remember { mutableStateOf(false) }
-
-        val coroutineScope = rememberCoroutineScope()
-
-        SideEffect {
-            coroutineScope.launch {
-                context?.datastore?.edit { cookies ->
-                    cookies[SESSION_ID_KEY] = state.sessionId
-                }
-            }
+        is ProfileState.UserState -> {
+            ActiveUser(state = uiState as ProfileState.UserState, profileVM =  profileVM, context = context)
         }
-
-        Column {
-            Text(text = state.sessionId)
-            Text(text = state.username)
-            Text(text = state.name)
-            Button(
-                onClick = {
-                    showDialog = true
-                }
-            ) {
-                Text(text = "Sign out")
-            }
-        }
-        SignOutDialog(showDialog, onChanged = { showDialog = it })
-    }
-
-    @Composable
-    fun SignOutDialog(showDialog: Boolean, onChanged: (Boolean) -> Unit) {
-
-        val viewModel: ProfileViewModel = viewModel()
-
-        val coroutineScope = rememberCoroutineScope()
-
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = { onChanged(false) },
-                text = {
-                    Text(text = "Are you sure you want to sign out?")
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                viewModel.handleAction(
-                                    ProfileState.Action.SignOut
-                                )
-                                context?.datastore?.edit { cookies ->
-                                    // delete stored session ID
-                                    cookies.remove(SESSION_ID_KEY)
-                                }
-                            }
-                        }
-                    ) {
-                        Text(text = "Confirm")
-                    }
-                },
-                dismissButton = { DialogCancelButton(onChanged) }
-            )
-        }
-    }
-
-    @Composable
-    fun NoProfile() {
-
-        var openDialog by remember { mutableStateOf(false) }
-        val viewModel: ProfileViewModel = viewModel()
-
-        LaunchedEffect(key1 = Unit) {
-            context?.datastore?.edit { cookies ->
-                // if there is stored session id, then restore session with it
-                cookies[SESSION_ID_KEY]?.let { sessionId ->
-                    viewModel.handleAction(ProfileState.Action.Restore(sessionId))
-                }
-            }
-        }
-
-        Column {
-            Text(text = "You are not signed in")
-            Button(
-                onClick = {
-                    openDialog = true
-                }
-            ) {
-                Text(text = "Sign in")
-            }
-        }
-        SignInDialog(openDialog, onChanged = { openDialog = it })
     }
 }
 
 @Composable
-fun SignInDialog(openDialog: Boolean, onChanged: (Boolean) -> Unit) {
+fun ActiveUser(state: ProfileState.UserState, profileVM: ProfileViewModel, context: Context) {
+
+    var showDialog by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    SideEffect {
+        coroutineScope.launch {
+            context.datastore.edit { cookies ->
+                cookies[SESSION_ID_KEY] = state.sessionId
+            }
+        }
+    }
+
+    Column {
+        Text(text = state.sessionId)
+        Text(text = state.username)
+        Text(text = state.name)
+        Button(
+            onClick = {
+                showDialog = true
+            }
+        ) {
+            Text(text = "Sign out")
+        }
+    }
+    SignOutDialog(context, profileVM, showDialog, onChanged = { showDialog = it })
+}
+
+@Composable
+fun SignOutDialog(
+    context: Context,
+    profileVM: ProfileViewModel,
+    showDialog: Boolean,
+    onChanged: (Boolean) -> Unit
+) {
+
+    val coroutineScope = rememberCoroutineScope()
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { onChanged(false) },
+            text = {
+                Text(text = "Are you sure you want to sign out?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            profileVM.handleAction(
+                                ProfileState.Action.SignOut
+                            )
+                            context.datastore.edit { cookies ->
+                                // delete stored session ID
+                                cookies.remove(SESSION_ID_KEY)
+                            }
+                        }
+                    }
+                ) {
+                    Text(text = "Confirm")
+                }
+            },
+            dismissButton = { DialogCancelButton(onChanged) }
+        )
+    }
+}
+
+@Composable
+fun NoProfile(context: Context, profileVM: ProfileViewModel) {
+
+    var openDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(key1 = Unit) {
+        context.datastore.edit { cookies ->
+            // if there is stored session id, then restore session with it
+            cookies[SESSION_ID_KEY]?.let { sessionId ->
+                profileVM.handleAction(ProfileState.Action.Restore(sessionId))
+            }
+        }
+    }
+
+    Column {
+        Text(text = "You are not signed in")
+        Button(
+            onClick = {
+                openDialog = true
+            }
+        ) {
+            Text(text = "Sign in")
+        }
+    }
+    SignInDialog(profileVM, openDialog, onChanged = { openDialog = it })
+}
+
+@Composable
+fun SignInDialog(
+    profileVM: ProfileViewModel,
+    openDialog: Boolean,
+    onChanged: (Boolean) -> Unit
+) {
 
     var login by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -173,7 +183,7 @@ fun SignInDialog(openDialog: Boolean, onChanged: (Boolean) -> Unit) {
                 }
             },
             confirmButton = {
-                ConfirmButton(login, password)
+                ConfirmButton(login, password, profileVM)
             },
             dismissButton = {
                 DialogCancelButton(onChanged)
@@ -202,14 +212,13 @@ fun PasswordInput(password: String, onChanged: (String) -> Unit) {
 }
 
 @Composable
-fun ConfirmButton(login: String, password: String) {
+fun ConfirmButton(login: String, password: String, profileVM: ProfileViewModel) {
 
-    val viewModel: ProfileViewModel = viewModel()
     val coroutineScope = rememberCoroutineScope()
 
     val onClick: () -> Unit = {
         coroutineScope.launch {
-            viewModel.handleAction(
+            profileVM.handleAction(
                 ProfileState.Action.SignIn(
                     username = login,
                     password = password
@@ -234,3 +243,4 @@ fun DialogCancelButton(onChanged: (Boolean) -> Unit) {
         Text(text = "Cancel")
     }
 }
+

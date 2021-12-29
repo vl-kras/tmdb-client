@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.tmdbclient.shared.ServiceLocator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.SocketTimeoutException
 
 class TvShowDetailsViewModel: ViewModel() {
@@ -15,13 +16,13 @@ class TvShowDetailsViewModel: ViewModel() {
 
     fun getState(): LiveData<TvShowDetailsState> = state
 
-    fun handleAction(action: TvShowDetailsState.Action) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val oldState = state.value!!
-            state.postValue(TvShowDetailsState.Loading)
-            val newState = oldState.handle(action)
-            state.postValue(newState)
+    suspend fun handleAction(action: TvShowDetailsState.Action) {
+        val oldState = state.value!!
+        val newState = withContext(Dispatchers.IO) {
+            oldState.handle(action)
         }
+        state.postValue(newState)
+
     }
 }
 
@@ -59,10 +60,10 @@ sealed class TvShowDetailsState {
         }
     }
 
-    object Loading: TvShowDetailsState() {
-
-        override fun handle(action: Action): TvShowDetailsState = this
-    }
+//    object Loading: TvShowDetailsState() {
+//
+//        override fun handle(action: Action): TvShowDetailsState = this
+//    }
 
     data class Error(val exception: Exception): TvShowDetailsState() {
 

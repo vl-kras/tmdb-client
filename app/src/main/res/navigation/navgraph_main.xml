@@ -34,8 +34,7 @@
     <fragment
         android:id="@+id/movieDetailsFragment"
         android:name="com.example.tmdbclient.movie.details.MovieDetailsFragment"
-        android:label="Movie Details"
-        tools:layout="@layout/fragment_movie_details" >
+        android:label="Movie Details">
         <argument
             android:name="movieId"
             app:argType="integer" />
@@ -44,8 +43,7 @@
     <fragment
         android:id="@+id/tvShowDetailsFragment"
         android:name="com.example.tmdbclient.tvshow.details.TvShowDetailsFragment"
-        android:label="TV Show Details"
-        tools:layout="@layout/fragment_tvshow_details" >
+        android:label="TV Show Details">
         <argument
             android:name="showId"
             app:argType="integer" />
