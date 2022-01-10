@@ -1,10 +1,13 @@
 package com.example.tmdbclient.movie.list.ui
 
-import androidx.lifecycle.*
+import androidx.lifecycle.ViewModel
+import com.example.tmdbclient.movie.list.domain.MovieListRepository
 import com.example.tmdbclient.shared.ServiceLocator
 import com.example.tmdbclient.shared.TmdbBasePaths.MOVIE_LIST_PAGE_SIZE
-import com.example.tmdbclient.movie.list.logic.MovieListRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -13,19 +16,16 @@ class MovieListViewModel : ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    private val observableState = MutableLiveData<MovieListState>(InitialState())
+    val state: MutableStateFlow<MovieListState> = MutableStateFlow(InitialState)
 
-
-    fun getMovies(): LiveData<MovieListState> = observableState
+    fun getState(): StateFlow<MovieListState> = state
 
     suspend fun handleAction(action: MovieListState.Action) {
-
-            val oldState = observableState.value!!
-
-            val newState: MovieListState = withContext(ioDispatcher) {
-                oldState.handle(action)
+        state.update { state ->
+            withContext(ioDispatcher) {
+                state.handle(action)
             }
-            observableState.postValue(newState)
+        }
     }
 }
 
@@ -43,7 +43,7 @@ sealed class MovieListState {
     abstract fun handle(action: Action) : MovieListState
 }
 
-class InitialState: MovieListState() {
+object InitialState: MovieListState() {
 
 
     override fun handle(action: Action): MovieListState {
