@@ -20,7 +20,7 @@ fun MoviesNavigation(profileVM: ProfileViewModel) {
             route = "movie/{movieId}",
             arguments = listOf(navArgument("movieId") { type = NavType.IntType } )
         ) {
-            MovieDetailsScreen(profileVM = profileVM, movieId = it.arguments?.getInt("movieId") ?: 0)
+            MovieDetailsScreen(profileVM = profileVM, movieId = it.arguments?.getInt("movieId") ?: 0, navController)
         }
     }
 }

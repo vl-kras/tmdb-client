@@ -30,17 +30,27 @@ fun ProfileScreen(profileVM: ProfileViewModel, context: Context) {
 
     Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) } ) {
 
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
             when (state) {
                 is ProfileState.InitialState -> {
                     InitialState()
                 }
-
                 is ProfileState.EmptyState -> {
-                    NoProfile(profileVM) { message = it }
+                    NoProfile(
+                        profileVM = profileVM,
+                        onActionResult = { message = it }
+                    )
                 }
                 is ProfileState.UserState -> {
-                    ActiveUser(state = state as ProfileState.UserState, profileVM =  profileVM, context = context) { message = it }
+                    ActiveUser(
+                        state = state as ProfileState.UserState,
+                        profileVM =  profileVM,
+                        context = context,
+                        onActionResult = { message = it }
+                    )
                 }
             }
         }
@@ -60,10 +70,16 @@ fun ProfileScreen(profileVM: ProfileViewModel, context: Context) {
 @Composable
 fun InitialState() {
     LoadingIndicator()
+
 }
 
 @Composable
-fun ActiveUser(state: ProfileState.UserState, profileVM: ProfileViewModel, context: Context, onActionResult: (String)-> Unit) {
+fun ActiveUser(
+    state: ProfileState.UserState,
+    profileVM: ProfileViewModel,
+    context: Context,
+    onActionResult: (String)-> Unit
+) {
 
     var showDialog by remember { mutableStateOf(false) }
 
@@ -221,12 +237,16 @@ fun PasswordInput(password: String, onChanged: (String) -> Unit) {
 }
 
 @Composable
-fun ConfirmButton(login: String, password: String, profileVM: ProfileViewModel, onActionResult: (String)-> Unit) {
+fun ConfirmButton(
+    login: String,
+    password: String,
+    profileVM: ProfileViewModel,
+    onActionResult: (String)-> Unit
+) {
 
     val coroutineScope = rememberCoroutineScope()
 
     val callback: (Result<String>) -> Unit = { result ->
-
         result.onSuccess { message ->
             onActionResult(message)
         }.onFailure { error ->
@@ -234,8 +254,11 @@ fun ConfirmButton(login: String, password: String, profileVM: ProfileViewModel, 
         }
     }
 
+    var isProcessing by remember { mutableStateOf(false) }
+
     val onClick: () -> Unit = {
         coroutineScope.launch {
+            isProcessing = true
             profileVM.handleAction(
                 ProfileState.Action.SignIn(
                     username = login,
@@ -243,12 +266,17 @@ fun ConfirmButton(login: String, password: String, profileVM: ProfileViewModel, 
                     onResult = callback
                 )
             )
+            isProcessing = false
         }
     }
-    TextButton(
-        onClick = onClick
-    ) {
-        Text(text = "Sign in")
+    if (isProcessing) {
+        LoadingIndicator()
+    } else {
+        TextButton(
+            onClick = onClick
+        ) {
+            Text(text = "Sign in")
+        }
     }
 }
 

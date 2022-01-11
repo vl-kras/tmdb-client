@@ -6,8 +6,6 @@ import com.example.tmdbclient.shared.ServiceLocator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
-import java.net.SocketTimeoutException
-import kotlin.Exception
 
 class MovieDetailsViewModel: ViewModel() {
 
@@ -32,10 +30,10 @@ sealed class MovieDetailsState {
         backend = ServiceLocator.movieDetailsBackend
     )
 
-    sealed class Action {
-        data class Load(val movieId: Int): Action()
-        data class PostRating(val sessionId: String, val movieId: Int, val rating: Float): Action()
-        data class DeleteRating(val sessionId: String, val movieId: Int): Action()
+    sealed class Action(val onResult: (String) -> Unit) {
+        class Load(val movieId: Int, onResult: (String) -> Unit): Action(onResult)
+        class PostRating(val sessionId: String, val movieId: Int, val rating: Float, onResult: (String) -> Unit): Action(onResult)
+        class DeleteRating(val sessionId: String, val movieId: Int, onResult: (String) -> Unit): Action(onResult)
     }
 
     abstract fun handle(action: Action): MovieDetailsState
@@ -45,12 +43,17 @@ sealed class MovieDetailsState {
         override fun handle(action: Action): MovieDetailsState {
             return when (action) {
                 is Action.Load -> {
-                    try {
-                        val movieDetails = repository.fetchMovieDetails(action.movieId)
-                        Display(movieDetails)
-                    }
-                    catch (e: SocketTimeoutException) {
-                        Error(e)
+                    val movieDetails = repository.fetchMovieDetails(action.movieId)
+                    movieDetails.let { result ->
+                        var newState: MovieDetailsState = this
+                        result.onSuccess {
+                            newState = Display(it)
+                            action.onResult("Successfully loaded movie details")
+                        }.onFailure {
+                            newState = MovieDetailsState.Error(it)
+                            action.onResult("Failed to load movie details")
+                        }
+                        newState
                     }
                 }
                 else -> {
@@ -60,13 +63,23 @@ sealed class MovieDetailsState {
         }
     }
 
-    data class Error(val exception: Exception): MovieDetailsState() {
+    data class Error(val exception: Throwable): MovieDetailsState() {
 
         override fun handle(action: Action): MovieDetailsState {
             return when (action) {
                 is Action.Load -> {
                     val movieDetails = repository.fetchMovieDetails(action.movieId)
-                    Display(movieDetails)
+                    movieDetails.let { result ->
+                        var newState: MovieDetailsState = this
+                        result.onSuccess {
+                            newState = Display(it)
+                            action.onResult("Successfully loaded movie details")
+                        }.onFailure {
+                            newState = MovieDetailsState.Error(it)
+                            action.onResult("Failed to load movie details")
+                        }
+                        newState
+                    }
                 }
                 else -> {
                     throw IllegalArgumentException("$this cannot handle $action")
@@ -84,14 +97,26 @@ sealed class MovieDetailsState {
                         action.movieId,
                         action.sessionId,
                         action.rating
-                    )
+                    ).let { result ->
+                        result.onSuccess {
+                            action.onResult("Successfully posted movie rating ${action.rating}")
+                        }.onFailure {
+                            action.onResult("Failed to post movie rating")
+                        }
+                    }
                     this
                 }
                 is Action.DeleteRating -> {
                     repository.removeMovieRating(
                         action.movieId,
                         action.sessionId
-                    )
+                    ).let { result ->
+                        result.onSuccess {
+                            action.onResult("Successfully deleted movie rating")
+                        }.onFailure {
+                            action.onResult("Failed to delete movie rating")
+                        }
+                    }
                     this
                 }
                 else -> {

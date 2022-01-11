@@ -25,6 +25,8 @@ class MovieListBackend: MovieListRepository.MovieListBackendContract {
 
     override fun fetchPopularMovies(page: Int): List<MovieListRepository.Movie> {
 
+        //TODO switch to runCatching
+
         return getPopularMoviesByPage(page).map { movie ->
             MovieListRepository.Movie(
                 movie.id,
@@ -39,17 +41,12 @@ class MovieListBackend: MovieListRepository.MovieListBackendContract {
         val request = service.getMoviesPopular(apiKey, page)
         val response = request.execute()
 
-        //TODO maybe a better, safer way to get data from server
-//        val result = if (response.isSuccessful) {
-//            Result.success(response.body()!!.movieList)
-//        } else {
-//            val apiError = response.errorBody()?.let {
-//                ApiError.from(it)
-//            }
-//            Result.failure(apiError!!)
-//        }
-        return response.body()?.movieList
-            ?: throw IOException("Could not load popular movies")
+        return if (response.isSuccessful) {
+            response.body()?.movieList
+                ?: throw IOException("Could not load popular movies")
+        } else {
+            throw IOException("Could not load popular movies")
+        }
     }
 }
 

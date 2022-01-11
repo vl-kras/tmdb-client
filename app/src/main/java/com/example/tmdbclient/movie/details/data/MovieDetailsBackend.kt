@@ -41,34 +41,47 @@ class MovieDetailsBackend: MovieDetailsRepository.MovieDetailsBackendContract {
     private val apiKey = BuildConfig.TMDB_API_KEY
     private val service = ServiceLocator.retrofit.create(TmdbMovieDetailsApi::class.java)
 
-    override fun fetchMovieDetails(movieId: Int): MovieDetailsRepository.MovieDetails {
+    override fun fetchMovieDetails(movieId: Int): Result<MovieDetailsRepository.MovieDetails> {
 
-        val movie = getMovieDetails(movieId)
-        return MovieDetailsRepository.MovieDetails(
-            title = movie.title,
-            isAdult = movie.isAdult,
-            genres = movie.genres.map { it.name },
-            overview = movie.overview ?: "",
-            posterPath = movie.posterPath ?: "",
-            runtime = movie.runtime ?: 0,
-            userScore = movie.voteAverage.toFloat(),
-            tagline = movie.tagline ?: "",
-        )
+        return runCatching {
+            getMovieDetails(movieId).let { movieDto -> //DTO - Data Transfer Object
+                MovieDetailsRepository.MovieDetails(
+                    title = movieDto.title,
+                    isAdult = movieDto.isAdult,
+                    genres = movieDto.genres.map { it.name },
+                    overview = movieDto.overview ?: "",
+                    posterPath = movieDto.posterPath ?: "",
+                    runtime = movieDto.runtime ?: 0,
+                    userScore = movieDto.voteAverage.toFloat(),
+                    tagline = movieDto.tagline ?: "",
+                )
+            }
+        }
     }
 
-    override fun rateMovie(movieId: Int, sessionId: String, rating: Float) {
-        postMovieRating(movieId, rating, sessionId)
+    override fun rateMovie(movieId: Int, sessionId: String, rating: Float): Result<Unit> {
+        return runCatching {
+            postMovieRating(movieId, rating, sessionId)
+        }
     }
 
-    override fun removeMovieRating(movieId: Int, sessionId: String) {
-        deleteMovieRating(movieId, sessionId)
+    override fun removeMovieRating(movieId: Int, sessionId: String): Result<Unit> {
+        return runCatching {
+            deleteMovieRating(movieId, sessionId)
+        }
     }
 
     private fun getMovieDetails(movieId: Int): GetMovieDetails.ResponseBody {
         val request = service.getMovieDetails(movieId, apiKey)
         val response = request.execute()
-        return response.body()
-            ?: throw NoSuchElementException("Could not fetch movie details")
+        return if (response.isSuccessful) {
+            response.body() ?: throw NoSuchElementException(
+                "Request was successful, but the response body is empty")
+        } else {
+            throw IOException("Network request failed," +
+                        " code ${response.code()}," +
+                        " response body -> ${response.errorBody()?.string()}")
+        }
     }
 
     private fun deleteMovieRating(movieId: Int, sessionId: String) {
@@ -76,7 +89,9 @@ class MovieDetailsBackend: MovieDetailsRepository.MovieDetailsBackendContract {
         val request = service.deleteMovieRating(movieId, apiKey, sessionId)
         val response = request.execute()
         if (!response.isSuccessful) {
-            throw IOException("Failed to post movie rating")
+            throw IOException("Failed to delete movie rating," +
+                    " code ${response.code()}," +
+                    " response body -> ${response.errorBody()?.string()}")
         }
     }
 
@@ -88,12 +103,14 @@ class MovieDetailsBackend: MovieDetailsRepository.MovieDetailsBackendContract {
         )
         val response = request.execute()
         if (!response.isSuccessful) {
-            throw IOException("Failed to post movie rating")
+            throw IOException("Failed to post movie rating," +
+                    " code ${response.code()}," +
+                    " response body -> ${response.errorBody()?.string()}")
         }
     }
 }
 
-object GetMovieDetails {
+abstract class GetMovieDetails {
 
     data class ResponseBody(
 
@@ -161,7 +178,7 @@ object GetMovieDetails {
     }
 }
 
-object PostMovieRating {
+abstract class PostMovieRating {
 
     data class RequestBody(
         @SerializedName("value") val rating: Float
@@ -172,7 +189,7 @@ object PostMovieRating {
     )
 }
 
-object DeleteMovieRating {
+abstract class DeleteMovieRating {
     data class ResponseBody(
         @SerializedName("status_code") val statusCode: Int,
         @SerializedName("status_message") val statusMessage : String

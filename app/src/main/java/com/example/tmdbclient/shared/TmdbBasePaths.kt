@@ -6,4 +6,5 @@ object TmdbBasePaths {
     const val TMDB_POSTER_ORIGINAL = "https://image.tmdb.org/t/p/original"
     const val API_BASE_PATH = "https://api.themoviedb.org/3/"
     const val MOVIE_LIST_PAGE_SIZE = 20
+    const val TMDB_POSTER_HEIGHT_WIDTH_RATIO = 0.66f
 }
