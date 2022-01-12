@@ -3,7 +3,7 @@ package com.example.tmdbclient.shared
 import com.example.tmdbclient.movie.details.data.MovieDetailsBackend
 import com.example.tmdbclient.movie.details.domain.MovieDetailsRepository
 import com.example.tmdbclient.movie.list.data.MovieListBackend
-import com.example.tmdbclient.movie.list.domain.MovieListRepository
+import com.example.tmdbclient.movie.list.domain.MovieListInteractor
 import com.example.tmdbclient.profile.data.ProfileBackend
 import com.example.tmdbclient.profile.domain.ProfileRepository
 import com.example.tmdbclient.tvshow.details.data.TvShowDetailsBackend
@@ -37,7 +37,7 @@ object ServiceLocator {
         ProfileBackend()
     }
 
-    val movieListBackend: MovieListRepository.MovieListBackendContract by lazy {
+    val movieListDataSource: MovieListInteractor.DataSource by lazy {
         MovieListBackend()
     }
 

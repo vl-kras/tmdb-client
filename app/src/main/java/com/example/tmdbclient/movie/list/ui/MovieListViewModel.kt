@@ -1,23 +1,20 @@
 package com.example.tmdbclient.movie.list.ui
 
 import androidx.lifecycle.ViewModel
-import com.example.tmdbclient.movie.list.domain.MovieListRepository
+import com.example.tmdbclient.movie.list.domain.Movie
+import com.example.tmdbclient.movie.list.domain.MovieListInteractor
 import com.example.tmdbclient.shared.ServiceLocator
-import com.example.tmdbclient.shared.TmdbBasePaths.MOVIE_LIST_PAGE_SIZE
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 
 class MovieListViewModel : ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    val state: MutableStateFlow<MovieListState> = MutableStateFlow(InitialState)
-
+    val state: MutableStateFlow<MovieListState> = MutableStateFlow(MovieListState.InitialState())
     fun getState(): StateFlow<MovieListState> = state
 
     suspend fun handleAction(action: MovieListState.Action) {
@@ -31,88 +28,121 @@ class MovieListViewModel : ViewModel() {
 
 sealed class MovieListState {
 
-    protected val repository = MovieListRepository(
-        backend = ServiceLocator.movieListBackend
-    )
-
     sealed class Action {
         object LoadInitial: Action()
-        object LoadMore: Action()
+        class LoadMore(val onResult: (Result<Unit>) -> Unit): Action()
     }
+
+    protected val repository = MovieListInteractor(
+        dataSource = ServiceLocator.movieListDataSource
+    )
 
     abstract fun handle(action: Action) : MovieListState
-}
 
-object InitialState: MovieListState() {
+    class InitialState: MovieListState() {
 
+        override fun handle(action: Action): MovieListState {
 
-    override fun handle(action: Action): MovieListState {
-
-        return when (action) {
-            is Action.LoadInitial -> {
-                try {
-                    Display(movies = repository.fetchPopularMovies())
+            return when (action) {
+                is Action.LoadInitial -> {
+                    loadInitial()
                 }
-                catch (e: UnknownHostException) {
-                    Error(e)
+                else -> {
+                    throw IllegalArgumentException("$this cannot handle $action")
                 }
             }
-            else -> {
-                throw IllegalArgumentException("$this cannot handle $action")
+        }
+
+        private fun loadInitial(): MovieListState {
+
+            val result = repository.fetchPopularMovies()
+
+            return if (result.isSuccess) {
+                val movieList = result.getOrDefault(emptyList())
+                DisplayState(movies = movieList)
+
+            } else {
+                val error = result.exceptionOrNull() as Exception
+                ErrorState(error)
             }
         }
     }
-}
 
-data class Error(val exception: Exception): MovieListState() {
+    class ErrorState(val exception: Exception): MovieListState() {
 
-    override fun handle(action: Action): MovieListState {
+        override fun handle(action: Action): MovieListState {
 
-        return when (action) {
-            is Action.LoadInitial -> {
-                try {
-                    Display(movies = repository.fetchPopularMovies())
+            return when (action) {
+                is Action.LoadInitial -> {
+                    loadInitial()
                 }
-                catch (e: UnknownHostException) {
-                    Error(e)
+                else -> {
+                    throw IllegalArgumentException("$this cannot handle $action")
                 }
             }
-            else -> {
-                throw IllegalArgumentException("$this cannot handle $action")
+        }
+
+        private fun loadInitial(): MovieListState {
+
+            val result = repository.fetchPopularMovies()
+
+            return if (result.isSuccess) {
+                val movieList = result.getOrDefault(emptyList())
+                DisplayState(movies = movieList)
+
+            } else {
+                val error = result.exceptionOrNull() as Exception
+                ErrorState(error)
             }
         }
     }
-}
 
-data class Display(
-    val movies: List<MovieListRepository.Movie>,
-    val error: Exception? = null, //i'd rather use optional
-): MovieListState() {
+    data class DisplayState(
+        val movies: List<Movie>,
+    ): MovieListState() {
 
-    override fun handle(action: Action): MovieListState {
+        override fun handle(action: Action): MovieListState {
 
-        return when (action) {
+            return when (action) {
 
-            is Action.LoadMore -> {
-                try {
-                    val nextPage = this.movies.count().div(MOVIE_LIST_PAGE_SIZE).inc()
-                    val updates = repository.fetchPopularMovies(nextPage)
-
-                    this.copy(movies = this.movies + updates)
+                is Action.LoadMore -> {
+                    loadMore(action)
                 }
-                catch (e: UnknownHostException) {
-
-                    this.copy(error = e)
+                else -> {
+                    throw IllegalArgumentException("$this cannot handle $action")
                 }
-                catch (e: SocketTimeoutException) {
-
-                    this.copy(error = e)
-                }
-            }
-
-            else -> {
-                this.copy(error = Exception("This action is not allowed"))
             }
         }
+
+        private fun loadMore(action: Action.LoadMore): DisplayState {
+
+            fun onDataRequestSuccess(updates: List<Movie>): DisplayState {
+                action.onResult(Result.success(Unit))
+                return this.copy(movies = this.movies + updates)
+            }
+
+            fun onDataRequestFailure(exception: Exception): DisplayState {
+                action.onResult(Result.failure(exception))
+                return this
+            }
+
+            val nextPage = this.movies.count().div(MOVIE_LIST_PAGE_SIZE).inc()
+
+            val newDataRequest = repository.fetchPopularMovies(nextPage)
+
+            return if (newDataRequest.isSuccess) {
+                val updates = newDataRequest.getOrDefault(emptyList())
+                onDataRequestSuccess(updates)
+            }
+            else {
+                val exception: Exception = (newDataRequest.exceptionOrNull() as Exception?)
+                    ?: Exception("Something went wrong")
+                onDataRequestFailure(exception)
+            }
+        }
+    }
+
+    companion object {
+        const val MOVIE_LIST_PAGE_SIZE = 20
     }
 }

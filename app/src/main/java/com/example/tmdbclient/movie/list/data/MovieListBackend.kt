@@ -1,7 +1,8 @@
 package com.example.tmdbclient.movie.list.data
 
 import com.example.tmdbclient.*
-import com.example.tmdbclient.movie.list.domain.MovieListRepository
+import com.example.tmdbclient.movie.list.domain.Movie
+import com.example.tmdbclient.movie.list.domain.MovieListInteractor
 import com.example.tmdbclient.shared.ServiceLocator
 import com.google.gson.annotations.SerializedName
 import retrofit2.Call
@@ -18,21 +19,21 @@ interface TmdbMovieListApi {
     ): Call<GetPopularMovies.ResponseBody>
 }
 
-class MovieListBackend: MovieListRepository.MovieListBackendContract {
+class MovieListBackend: MovieListInteractor.DataSource {
 
     private val apiKey = BuildConfig.TMDB_API_KEY
     private val service = ServiceLocator.retrofit.create(TmdbMovieListApi::class.java)
 
-    override fun fetchPopularMovies(page: Int): List<MovieListRepository.Movie> {
+    override fun fetchPopularMovies(page: Int): Result<List<Movie>> {
 
-        //TODO switch to runCatching
-
-        return getPopularMoviesByPage(page).map { movie ->
-            MovieListRepository.Movie(
-                movie.id,
-                movie.title,
-                movie.posterPath ?: ""
-            )
+        return runCatching {
+            getPopularMoviesByPage(page).map { movieListDto ->
+                Movie(
+                    movieListDto.id,
+                    movieListDto.title,
+                    movieListDto.posterPath ?: ""
+                )
+            }
         }
     }
 

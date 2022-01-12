@@ -56,9 +56,9 @@ fun MovieDetailsScreen(profileVM: ProfileViewModel, movieId: Int, navController:
                 Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Go back")
             }
         },
-        floatingActionButtonPosition = FabPosition.Center,
+        floatingActionButtonPosition = FabPosition.Center
 
-        ) {
+    ) {
 
         when (state) {
             is MovieDetailsState.Initial -> {

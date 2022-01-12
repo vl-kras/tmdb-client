@@ -13,14 +13,26 @@ import com.example.tmdbclient.profile.ui.ProfileViewModel
 @Composable
 fun MoviesNavigation(profileVM: ProfileViewModel) {
 
+    //TODO maybe switch to sub graphs ??
+
     val navController = rememberNavController()
+
     NavHost(navController = navController, startDestination = "movie_list") {
-        composable("movie_list") { MovieListScreen(profileVM = profileVM, navController = navController) }
+
+        composable(route = "movie_list") {
+            MovieListScreen(navController = navController)
+        }
         composable(
             route = "movie/{movieId}",
-            arguments = listOf(navArgument("movieId") { type = NavType.IntType } )
+            arguments = listOf(
+                navArgument(name = "movieId", builder = { type = NavType.IntType } )
+            )
         ) {
-            MovieDetailsScreen(profileVM = profileVM, movieId = it.arguments?.getInt("movieId") ?: 0, navController)
+            MovieDetailsScreen(
+                profileVM = profileVM,
+                movieId = it.arguments?.getInt("movieId") ?: 0,
+                navController =  navController
+            )
         }
     }
 }

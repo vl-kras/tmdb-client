@@ -1,10 +1,17 @@
 package com.example.tmdbclient.movie.list.ui
 
-import android.util.Log
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,137 +20,113 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberImagePainter
-import com.example.tmdbclient.movie.list.domain.MovieListRepository
-import com.example.tmdbclient.profile.ui.ProfileViewModel
+import com.example.tmdbclient.movie.list.domain.Movie
 import com.example.tmdbclient.shared.TmdbBasePaths
 import kotlinx.coroutines.launch
 
 @Composable
-fun MovieListScreen(
-    profileVM: ProfileViewModel,
-    navController: NavController
-) {
+fun MovieListScreen(navController: NavController) {
 
     val viewModel: MovieListViewModel = viewModel()
-
     val state by viewModel.getState().collectAsState()
 
     when (state) {
-        is InitialState -> {
-            LoadingState()
+        is MovieListState.InitialState -> {
+            InitialState()
         }
-        is Display -> {
-            DisplayState(state = state as Display, profileVM = profileVM, navController = navController)
+        is MovieListState.DisplayState -> {
+            DisplayState(
+                state = state as MovieListState.DisplayState,
+                navController = navController
+            )
         }
-        is Error -> {
-            ErrorState(state = state as Error)
+        is MovieListState.ErrorState -> {
+            ErrorState(state = state as MovieListState.ErrorState)
         }
     }
 }
 
 @Composable
-fun LoadingState() {
-
-    LoadingIndicator()
+fun InitialState() {
 
     val viewModel: MovieListViewModel = viewModel()
 
+    //start loading first page
     LaunchedEffect(key1 = Unit) {
-
         val action = MovieListState.Action.LoadInitial
         viewModel.handleAction(action)
     }
+
+    LoadingIndicator()
 }
 
 @Composable
-fun DisplayState(state: Display, profileVM: ProfileViewModel, navController: NavController) {
-
-    val viewModel: MovieListViewModel = viewModel()
-
-    val listState = rememberLazyListState() // ???
-
-    val snackbarHostState = remember { SnackbarHostState() }
+fun DisplayState(state: MovieListState.DisplayState, navController: NavController) {
 
     val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
 
-    val error by remember { mutableStateOf(state.error) }
-
-    state.error?.let {
-        LaunchedEffect(key1 = state.error) {
-            snackbarHostState.showSnackbar(
-                message = it.message ?: "Something went wrong"
-            )
-        }
-    }
-
-    val showButton by remember {
+    val isUpButtonVisible by remember {
         derivedStateOf {
             listState.firstVisibleItemIndex > 0
         }
     }
 
-    val columnCount = 2
-
-    var run by remember { mutableStateOf(false) }
-    if((listState.firstVisibleItemIndex > state.movies.size.div(columnCount).minus(5)) and (state.error != null)) {
-        run = true
-    }
-
-    var isLoadingMore: Boolean by remember { mutableStateOf(false) }
-
-    Log.d("BLABLA", "Index -> ${listState.firstVisibleItemIndex}, Size -> ${state.movies.size}, Should load more -> $run")
-    if(run) {
-
-        SideEffect {
-
-
-            coroutineScope.launch {
-                isLoadingMore = true
-                val action = MovieListState.Action.LoadMore
-                viewModel.handleAction(action)
-                isLoadingMore = false
-            }
-
+    val onFabClick: () -> Unit = {
+        coroutineScope.launch {
+            listState.animateScrollToItem(index = 0) //scroll to the top
         }
-
-//            run = false
     }
 
-    LazyColumn {
-        items(state.movies.chunked(columnCount)) { list ->
-            Row {
-                list.forEach { movie ->
-                    ContentItem(movie = movie, navController = navController, modifier = Modifier.weight(1f))
+    Scaffold(
+        floatingActionButton = {
+            if (isUpButtonVisible) {
+                FloatingActionButton(onClick = onFabClick) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Go back"
+                    )
                 }
-
             }
-        }
-        item {
-            ListFooter(state.error, isLoadingMore)
-        }
+        },
+        floatingActionButtonPosition = FabPosition.End
+    ) {
+        MovieList(listState, state.movies, navController)
     }
-
-    SnackbarHost(hostState = snackbarHostState)
-
-//    AnimatedVisibility(visible = showButton) {
-//        Box {
-//            Button(
-//                onClick = {
-//                    coroutineScope.launch {
-//                        listState.animateScrollToItem(index = 0)
-//                    }
-//                },
-//                modifier = Modifier.align(Alignment.BottomEnd)
-//            ) {
-//                Text(text = "Scroll to top")
-//            }
-//        }
-//    }
 }
 
 @Composable
-fun ContentItem(
-    movie: MovieListRepository.Movie,
+fun MovieList(listState: LazyListState, listContents: List<Movie>, navController: NavController) {
+
+    val columnCount = 2 // 1 for vertical list, 2+ for grid list
+
+    var isLoadingMore by remember { mutableStateOf(false) }
+    var loadingResult: Result<Unit> by remember { mutableStateOf(Result.success(Unit)) }
+
+    LazyColumn(state = listState) {
+        items(listContents.chunked(columnCount)) { list ->
+            Row {
+                list.forEach { movie ->
+                    MovieListItem(
+                        movie = movie,
+                        navController = navController,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+        item {
+            ListFooter(
+                isLoadingMore, { isLoadingMore = it },
+                loadingResult, { loadingResult = it }
+            )
+        }
+    }
+}
+
+@Composable
+fun MovieListItem(
+    movie: Movie,
     navController: NavController,
     modifier: Modifier
 ) {
@@ -155,10 +138,11 @@ fun ContentItem(
     Column(modifier = modifier
         .padding(2.dp)
         .border(BorderStroke(1.dp, Color.LightGray))
-        .clickable(enabled = true, onClick = onMovieClick)) {
-
+        .clickable(enabled = true, onClick = onMovieClick)
+    ) {
+        val posterUrl = TmdbBasePaths.TMDB_POSTER_W300 + movie.posterPath
         Image(
-            painter = rememberImagePainter(data = TmdbBasePaths.TMDB_POSTER_W300 + movie.posterPath),
+            painter = rememberImagePainter(data = posterUrl),
             contentDescription = "Movie Poster",
             modifier = Modifier.aspectRatio(ratio =0.66f)
         )
@@ -171,55 +155,75 @@ fun ContentItem(
 }
 
 @Composable
-fun ListFooter(error: Exception?, isLoadingMore: Boolean) {
-
-    Log.d("FOOTER", "Loading more -> $isLoadingMore")
+fun ListFooter(
+    isLoading: Boolean, setLoadingStatus: (Boolean) -> Unit,
+    loadingResult: Result<Unit>, setLoadingResult: (Result<Unit>) -> Unit
+) {
 
     val coroutineScope = rememberCoroutineScope()
-
-//        var isLoadingMore: Boolean by remember { mutableStateOf(false) }
-
     val viewModel: MovieListViewModel = viewModel()
 
-    if (isLoadingMore.not()) {
-
-        Column(modifier = Modifier.fillMaxWidth()) {
-            val buttonText: String = if (error != null) {
-                Text(text = "${error.message}") //  <------ !!!
-                "Retry"
-            } else {
-                "Load more"
-            }
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-//                            isLoadingMore = true
-                        val action = MovieListState.Action.LoadMore
-                        viewModel.handleAction(action)
-//                            isLoadingMore = false
-                    }
-                },
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Text(text = buttonText)
-            }
+    //action to load next page
+    val loadMore: () -> Unit = {
+        coroutineScope.launch {
+            setLoadingStatus(true)
+            val action = MovieListState.Action.LoadMore(
+                onResult = { setLoadingResult(it) }
+            )
+            viewModel.handleAction(action)
+        }.invokeOnCompletion {
+            setLoadingStatus(false)
         }
+    }
+
+    //auto-pagination, load more when footer becomes visible (reached the end of the list)
+    SideEffect {
+        loadMore.invoke()
+    }
+
+    //actual footer
+    if (!isLoading) {
+        NotLoadingFooter(loadMore, loadingResult)
     } else {
         LoadingIndicator()
     }
 }
 
 @Composable
-fun ErrorState(state: Error) {
+fun NotLoadingFooter(onButtonClick: () -> Unit , loadingResult: Result<Unit>) {
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        val buttonText: String =
+            if (loadingResult.isSuccess) {
+                "Load more"
+            } else {
+                Text(text = loadingResult.exceptionOrNull()?.message ?: "Something went wrong")
+                "Retry"
+            }
+        Button(
+            onClick = onButtonClick,
+        ) {
+            Text(text = buttonText)
+        }
+    }
+}
+
+@Composable
+fun ErrorState(state: MovieListState.ErrorState) {
 
     val coroutineScope = rememberCoroutineScope()
-
     val viewModel: MovieListViewModel = viewModel()
 
-    Column {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
         Text(
-            text = state.exception.message
-                ?: "Something went wrong"
+            text = state.exception.message ?: "Something went wrong"
         )
         Button(
             onClick = {
@@ -227,7 +231,6 @@ fun ErrorState(state: Error) {
                     val action = MovieListState.Action.LoadInitial
                     viewModel.handleAction(action)
                 }
-
             }
         ) {
             Text(text = "Try again")
@@ -242,6 +245,5 @@ fun LoadingIndicator() {
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator()
-
     }
 }
