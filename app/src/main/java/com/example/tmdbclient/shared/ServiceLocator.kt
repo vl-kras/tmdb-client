@@ -5,7 +5,7 @@ import com.example.tmdbclient.movie.details.domain.MovieDetailsInteractor
 import com.example.tmdbclient.movie.list.data.MovieListBackend
 import com.example.tmdbclient.movie.list.domain.MovieListInteractor
 import com.example.tmdbclient.profile.data.ProfileBackend
-import com.example.tmdbclient.profile.domain.ProfileRepository
+import com.example.tmdbclient.profile.domain.ProfileInteractor
 import com.example.tmdbclient.tvshow.details.data.TvShowDetailsBackend
 import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsRepository
 import com.example.tmdbclient.tvshow.list.data.TvShowListBackend
@@ -33,7 +33,9 @@ object ServiceLocator {
             .build()
     }
 
-    val profileRepositoryBackend: ProfileRepository.ProfileBackendContract by lazy {
+    //TODO switch dataSource getters to factory methods
+
+    val profileRepositoryDataSource: ProfileInteractor.DataSource by lazy {
         ProfileBackend()
     }
 

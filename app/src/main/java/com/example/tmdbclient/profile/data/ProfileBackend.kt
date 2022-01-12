@@ -1,7 +1,8 @@
 package com.example.tmdbclient.profile.data
 
 import com.example.tmdbclient.*
-import com.example.tmdbclient.profile.domain.ProfileRepository
+import com.example.tmdbclient.profile.domain.ProfileInteractor
+import com.example.tmdbclient.profile.domain.UserSession
 import com.example.tmdbclient.shared.ServiceLocator
 import com.google.gson.annotations.SerializedName
 import retrofit2.Call
@@ -41,41 +42,48 @@ interface TmdbAccountApi {
     ): Call<DeleteSession.ResponseBody>
 }
 
-class ProfileBackend: ProfileRepository.ProfileBackendContract {
+class ProfileBackend: ProfileInteractor.DataSource {
 
     private val apiKey = BuildConfig.TMDB_API_KEY
     private val service = ServiceLocator.retrofit.create(TmdbAccountApi::class.java)
 
     /* Methods required by repository */
 
-    override fun signIn(username: String, password: String): ProfileRepository.UserSession {
+    override fun signIn(username: String, password: String): Result<UserSession> {
+        return runCatching {
 
-        val token = createRequestToken().requestToken
-        validateTokenWithLogin(username, password, token)
-        val sessionId = createSession(token)
-        val accountDetails = getAccountDetails(sessionId)
+            val token = createRequestToken().requestToken
+            validateTokenWithLogin(username, password, token)
+            val sessionId = createSession(token)
+            val accountDetails = getAccountDetails(sessionId)
 
-        return ProfileRepository.UserSession(
-            userId = accountDetails.id,
-            username = accountDetails.username,
-            name = accountDetails.name,
-            sessionId = sessionId
-        )
+            UserSession(
+                userId = accountDetails.id,
+                username = accountDetails.username,
+                name = accountDetails.name,
+                sessionId = sessionId
+            )
+        }
     }
 
-    override fun fetchAccountDetails(sessionId: String): ProfileRepository.UserSession {
-        val accountDetails = getAccountDetails(sessionId)
+    override fun fetchAccountDetails(sessionId: String): Result<UserSession> {
+        return runCatching {
 
-        return ProfileRepository.UserSession(
-            userId = accountDetails.id,
-            username = accountDetails.username,
-            name = accountDetails.name,
-            sessionId = sessionId
-        )
+            val accountDetails = getAccountDetails(sessionId)
+
+            UserSession(
+                userId = accountDetails.id,
+                username = accountDetails.username,
+                name = accountDetails.name,
+                sessionId = sessionId
+            )
+        }
     }
 
-    override fun signOut(sessionId: String) {
-        deleteSession(sessionId)
+    override fun signOut(sessionId: String): Result<Unit> {
+        return runCatching {
+            deleteSession(sessionId)
+        }
     }
 
     /* API implementation methods */

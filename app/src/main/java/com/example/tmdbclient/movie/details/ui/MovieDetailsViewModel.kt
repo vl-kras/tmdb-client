@@ -126,11 +126,14 @@ sealed class MovieDetailsState {
                 action.movieId,
                 action.sessionId,
                 action.rating
-            ).onSuccess {
-                action.onResult("Successfully posted rating")
-            }.onFailure {
-                action.onResult("Failed to post rating")
-            }
+            ).fold(
+                onSuccess = {
+                    action.onResult("Successfully posted rating")
+                },
+                onFailure = {
+                    action.onResult("Failed to post rating")
+                }
+            )
         }
 
         private fun removeRating(action: Action.DeleteRating) {
@@ -138,11 +141,14 @@ sealed class MovieDetailsState {
             interactor.removeMovieRating(
                 action.movieId,
                 action.sessionId
-            ).onSuccess {
-                action.onResult("Successfully posted rating")
-            }.onFailure {
-                action.onResult("Failed to post rating")
-            }
+            ).fold(
+                onSuccess = {
+                    action.onResult("Successfully posted rating")
+                },
+                onFailure = {
+                    action.onResult("Failed to post rating")
+                }
+            )
         }
     }
 }

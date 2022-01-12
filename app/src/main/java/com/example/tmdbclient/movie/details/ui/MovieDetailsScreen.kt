@@ -130,9 +130,9 @@ fun DisplayState(
                 MovieRating(rating = movieDetails.userScore)
                 MovieTagline(tagline = movieDetails.tagline)
 
-                if (profileState.value is ProfileState.UserState) {
+                if (profileState.value is ProfileState.ActiveSession) {
                     RatingButton(
-                        profileState.value as ProfileState.UserState,
+                        profileState.value as ProfileState.ActiveSession,
                         movieId, onActionResult
                     )
                 }
@@ -184,7 +184,7 @@ fun MovieRuntime(runtime: Int) {
 }
 
 @Composable
-fun RatingButton(profileState: ProfileState.UserState, movieId: Int, onActionResult: (String) -> Unit) {
+fun RatingButton(profileState: ProfileState.ActiveSession, movieId: Int, onActionResult: (String) -> Unit) {
     var isPostingRating by remember { mutableStateOf(false) }
     var isRatingDialogShowing by remember { mutableStateOf(false) }
 

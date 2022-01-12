@@ -69,7 +69,7 @@ fun DisplayState(state: TvShowDetailsState.Display, profileVM: ProfileViewModel)
                 }
                 Log.d("PROFILE", profileVM.getState().value.toString())
 
-                if (profileVM.getState().value is ProfileState.UserState) {
+                if (profileVM.getState().value is ProfileState.ActiveSession) {
                     Button(
                         onClick = { showRatingDialog = true }
                     ) {
@@ -106,7 +106,7 @@ fun RatingDialog(onChanged: (Boolean) -> Unit, profileVM: ProfileViewModel, show
         confirmButton = {
             Button(
                 onClick = {
-                    val sessionId = (profileVM.getState().value as ProfileState.UserState).sessionId
+                    val sessionId = (profileVM.getState().value as ProfileState.ActiveSession).sessionId
                     val action = when (rating) {
                         0f ->  {
                             TvShowDetailsState.Action.DeleteRating(

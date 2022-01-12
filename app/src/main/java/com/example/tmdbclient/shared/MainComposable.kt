@@ -7,10 +7,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.datastore.preferences.core.edit
@@ -27,6 +26,7 @@ import com.example.tmdbclient.profile.ui.ProfileScreen
 import com.example.tmdbclient.profile.ui.ProfileState
 import com.example.tmdbclient.profile.ui.ProfileViewModel
 import com.example.tmdbclient.tvshow.TvShowsNavigation
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(context: Context) {
@@ -34,12 +34,31 @@ fun MainScreen(context: Context) {
     val profileVM: ProfileViewModel = viewModel()
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(key1 = Unit) {
+    if (profileVM.getState().value !is ProfileState.ActiveSession) {
+        SideEffect {
+            coroutineScope.launch {
+                context.datastore.edit { cookies ->
+                    //read stored sessionId, if there is any
+                    cookies[SESSION_ID_KEY].let { sessionId ->
+                        profileVM.handleAction(ProfileState.Action.Restore(sessionId ?: "") {} )
+                    }
+                }
+            }
+        }
+    }
 
-        context.datastore.edit { cookies ->
-            //read stored sessionId, if there is any
-            cookies[SESSION_ID_KEY].let { sessionId ->
-                profileVM.handleAction(ProfileState.Action.Restore(sessionId ?: "") {} )
+    val writeSessionId: (String) -> Unit = { sessionId ->
+        coroutineScope.launch {
+            context.datastore.edit { cookies ->
+
+                if (sessionId.isNotBlank()) {
+
+                    if (cookies[SESSION_ID_KEY] != sessionId) {
+                        cookies[SESSION_ID_KEY] = sessionId
+                    }
+                } else {
+                    cookies.remove(SESSION_ID_KEY)
+                }
             }
         }
     }
@@ -52,7 +71,7 @@ fun MainScreen(context: Context) {
             startDestination = ScreenTab.Profile.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(ScreenTab.Profile.route) { ProfileScreen(profileVM, context) }
+            composable(ScreenTab.Profile.route) { ProfileScreen(profileVM, writeSessionId) }
             composable(ScreenTab.Movies.route) { MoviesNavigation(profileVM) }
             composable(ScreenTab.TvShows.route) { TvShowsNavigation(profileVM) }
         }
@@ -103,6 +122,6 @@ fun onBottomNavItemClick(navController: NavController, screen: ScreenTab) {
 
 sealed class ScreenTab(val route: String, val label: String, val icon: ImageVector) {
     object Profile: ScreenTab("profile", "Profile", Icons.Default.Person) //TODO add proper icons
-    object Movies: ScreenTab("movies", "Movies", Icons.Default.List)
-    object TvShows: ScreenTab("tv_shows", "TV", Icons.Default.Menu)
+    object Movies: ScreenTab("movies", "Movies", Icons.Outlined.Movie)
+    object TvShows: ScreenTab("tv_shows", "TV", Icons.Default.Tv)
 }

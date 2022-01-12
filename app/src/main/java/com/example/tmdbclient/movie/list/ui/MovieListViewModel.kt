@@ -1,5 +1,6 @@
 package com.example.tmdbclient.movie.list.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.example.tmdbclient.movie.list.domain.Movie
 import com.example.tmdbclient.movie.list.domain.MovieListInteractor
@@ -48,23 +49,22 @@ sealed class MovieListState {
                     loadInitial()
                 }
                 else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
             }
         }
 
         private fun loadInitial(): MovieListState {
 
-            val result = interactor.fetchPopularMovies()
-
-            return if (result.isSuccess) {
-                val movieList = result.getOrDefault(emptyList())
-                DisplayState(movies = movieList)
-
-            } else {
-                val error = result.exceptionOrNull() as Exception
-                ErrorState(error)
-            }
+            return interactor.fetchPopularMovies().fold(
+                onSuccess = { movieList ->
+                    DisplayState(movies = movieList)
+                },
+                onFailure = { throwable ->
+                    ErrorState(throwable as Exception)
+                }
+            )
         }
     }
 
@@ -77,23 +77,22 @@ sealed class MovieListState {
                     loadInitial()
                 }
                 else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
             }
         }
 
         private fun loadInitial(): MovieListState {
 
-            val result = interactor.fetchPopularMovies()
-
-            return if (result.isSuccess) {
-                val movieList = result.getOrDefault(emptyList())
-                DisplayState(movies = movieList)
-
-            } else {
-                val error = result.exceptionOrNull() as Exception
-                ErrorState(error)
-            }
+            return interactor.fetchPopularMovies().fold(
+                onSuccess = { movieList ->
+                    DisplayState(movies = movieList)
+                },
+                onFailure = { throwable ->
+                    ErrorState(throwable as Exception)
+                }
+            )
         }
     }
 
@@ -109,36 +108,27 @@ sealed class MovieListState {
                     loadMore(action)
                 }
                 else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
             }
         }
 
         private fun loadMore(action: Action.LoadMore): DisplayState {
 
-            fun onDataRequestSuccess(updates: List<Movie>): DisplayState {
-                action.onResult(Result.success(Unit))
-                return this.copy(movies = this.movies + updates)
-            }
-
-            fun onDataRequestFailure(exception: Exception): DisplayState {
-                action.onResult(Result.failure(exception))
-                return this
-            }
-
             val nextPage = this.movies.count().div(MOVIE_LIST_PAGE_SIZE).inc()
 
-            val newDataRequest = interactor.fetchPopularMovies(nextPage)
 
-            return if (newDataRequest.isSuccess) {
-                val updates = newDataRequest.getOrDefault(emptyList())
-                onDataRequestSuccess(updates)
-            }
-            else {
-                val exception: Exception = (newDataRequest.exceptionOrNull() as Exception?)
-                    ?: Exception("Something went wrong")
-                onDataRequestFailure(exception)
-            }
+            return interactor.fetchPopularMovies(nextPage).fold(
+                onSuccess = { updates ->
+                    action.onResult(Result.success(Unit))
+                    this.copy(movies = this.movies + updates)
+                },
+                onFailure = { throwable ->
+                    action.onResult(Result.failure(throwable as Exception))
+                    this
+                }
+            )
         }
     }
 

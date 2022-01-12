@@ -1,7 +1,8 @@
 package com.example.tmdbclient.profile.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
-import com.example.tmdbclient.profile.domain.ProfileRepository
+import com.example.tmdbclient.profile.domain.ProfileInteractor
 import com.example.tmdbclient.shared.ServiceLocator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +15,7 @@ class ProfileViewModel : ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    val state: MutableStateFlow<ProfileState> = MutableStateFlow(ProfileState.InitialState)
+    val state: MutableStateFlow<ProfileState> = MutableStateFlow(ProfileState.Initial())
 
     fun getState(): StateFlow<ProfileState> = state
 
@@ -29,44 +30,63 @@ class ProfileViewModel : ViewModel() {
 
 sealed class ProfileState {
 
-    sealed class Action(val onResult: (Result<String>) -> Unit) {
-        class SignIn(val username: String, val password: String, onResult: (Result<String>) -> Unit): Action(onResult)
-        class Restore(val sessionId: String, onResult: (Result<String>) -> Unit): Action(onResult)
-        class SignOut(onResult: (Result<String>) -> Unit) : Action(onResult)
+    sealed class Action {
+
+        class SignIn(
+            val username: String, val password: String,
+            val onResult: (String) -> Unit
+        ): Action()
+
+        class Restore(
+            val sessionId: String,
+            val onResult: (String) -> Unit
+        ): Action()
+
+        class SignOut(val onResult: (String) -> Unit) : Action()
     }
 
-    protected val repository = ProfileRepository(
-        backend = ServiceLocator.profileRepositoryBackend
+    protected val interactor = ProfileInteractor(
+        dataSource = ServiceLocator.profileRepositoryDataSource
     )
 
     abstract fun handle(action: Action): ProfileState
 
-    object InitialState: ProfileState() {
+    class Initial: ProfileState() {
 
         override fun handle(action: Action): ProfileState {
+
             return when(action) {
                 is Action.Restore -> {
-                    try {
-                        val session = repository.fetchAccountDetails(action.sessionId)
-                        UserState(
-                            sessionId = session.sessionId,
-                            userId = session.userId,
-                            username = session.username,
-                            name = session.name
-                        )
-                    } catch (e: NoSuchElementException) {
-                        EmptyState
-                    }
-
+                    restoreSession(action)
                 }
                 else -> {
-                    throw IllegalArgumentException("$this can't handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
             }
         }
+
+        private fun restoreSession(action: Action.Restore): ProfileState {
+
+            return interactor.fetchAccountDetails(action.sessionId).fold(
+                onSuccess = { session ->
+                    action.onResult("Successfully restored session")
+                    ActiveSession(
+                        sessionId = session.sessionId,
+                        userId = session.userId,
+                        username = session.username,
+                        name = session.name
+                    )
+                },
+                onFailure = {
+                    action.onResult("Failed to restore session")
+                    NoSession
+                }
+            )
+        }
     }
 
-    class UserState(
+    class ActiveSession(
         val sessionId: String,
         val userId: Int,
         val username: String,
@@ -74,39 +94,65 @@ sealed class ProfileState {
     ) : ProfileState() {
 
         override fun handle(action: Action): ProfileState {
+
             return when(action) {
                 is Action.SignOut -> {
-                    repository.signOut(sessionId)
-                    action.onResult(Result.success("Successfully logged out"))
-                    EmptyState
+                    signOut(action)
                 }
                 else -> {
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
                     this
-//                    throw IllegalArgumentException("$this can't handle $action")
                 }
             }
         }
+
+        private fun signOut(action: Action.SignOut): ProfileState {
+
+            return interactor.signOut(sessionId).fold(
+                onSuccess = {
+                    action.onResult("Successfully signed out")
+                    NoSession
+                },
+                onFailure = { throwable ->
+                    action.onResult((throwable as Exception).message ?: "Failed to sign out")
+                    this
+                }
+            )
+        }
     }
 
-    object EmptyState : ProfileState() {
+    object NoSession : ProfileState() {
 
         override fun handle(action: Action): ProfileState {
 
             return when(action) {
                 is Action.SignIn -> {
-                    val session = repository.signIn(action.username, action.password)
-                    action.onResult(Result.success("Successfully logged in"))
-                    UserState(
+                    signIn(action)
+                }
+                else -> {
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
+                }
+            }
+        }
+
+        private fun signIn(action: Action.SignIn): ProfileState {
+
+            return interactor.signIn(action.username, action.password).fold(
+                onSuccess = { session ->
+                    action.onResult("Successfully signed in")
+                    ActiveSession(
                         sessionId = session.sessionId,
                         userId = session.userId,
                         username = session.username,
                         name = session.name
                     )
+                },
+                onFailure = {
+                    action.onResult("Failed to sign in")
+                    this
                 }
-                else -> {
-                    throw IllegalArgumentException("$this can't handle $action")
-                }
-            }
+            )
         }
     }
 }
