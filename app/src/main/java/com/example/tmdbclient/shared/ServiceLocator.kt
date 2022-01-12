@@ -1,7 +1,7 @@
 package com.example.tmdbclient.shared
 
 import com.example.tmdbclient.movie.details.data.MovieDetailsBackend
-import com.example.tmdbclient.movie.details.domain.MovieDetailsRepository
+import com.example.tmdbclient.movie.details.domain.MovieDetailsInteractor
 import com.example.tmdbclient.movie.list.data.MovieListBackend
 import com.example.tmdbclient.movie.list.domain.MovieListInteractor
 import com.example.tmdbclient.profile.data.ProfileBackend
@@ -41,7 +41,7 @@ object ServiceLocator {
         MovieListBackend()
     }
 
-    val movieDetailsBackend: MovieDetailsRepository.MovieDetailsBackendContract by lazy {
+    val movieDetailsBackend: MovieDetailsInteractor.DataSource by lazy {
         MovieDetailsBackend()
     }
 

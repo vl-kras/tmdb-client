@@ -8,7 +8,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberImagePainter
 import com.example.tmdbclient.R
@@ -48,7 +47,7 @@ fun DisplayState(state: TvShowDetailsState.Display, profileVM: ProfileViewModel)
         )
         Row {
             Image(
-                painter = rememberImagePainter(data = TmdbBasePaths.TMDB_POSTER_ORIGINAL + tvShow.posterPath),
+                painter = rememberImagePainter(data = TmdbBasePaths.TMDB_POSTER_ORIGINAL_DIRECTORY + tvShow.posterPath),
                 contentDescription = "Show poster",
                 modifier = Modifier
                     .aspectRatio(ratio = 0.66f)

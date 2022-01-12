@@ -1,7 +1,6 @@
 package com.example.tmdbclient.tvshow.list.ui
 
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -14,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberImagePainter
-import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_W300
+import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_W300_DIRECTORY
 import com.example.tmdbclient.tvshow.list.domain.TvShowListRepository
 import kotlinx.coroutines.launch
 
@@ -151,7 +150,7 @@ fun ContentItem(show: TvShowListRepository.TvShow, navController: NavController,
             .border(BorderStroke(1.dp, Color.LightGray))
             .clickable(enabled = true, onClick = onShowClick)) {
             Image(
-                painter = rememberImagePainter(data = TMDB_POSTER_W300 + show.posterPath),
+                painter = rememberImagePainter(data = TMDB_POSTER_W300_DIRECTORY + show.posterPath),
                 contentDescription = "TV Show Poster",
                 modifier = Modifier.aspectRatio(ratio =0.66f)
             )

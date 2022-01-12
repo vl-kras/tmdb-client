@@ -1,7 +1,8 @@
 package com.example.tmdbclient.movie.details.data
 
 import com.example.tmdbclient.*
-import com.example.tmdbclient.movie.details.domain.MovieDetailsRepository
+import com.example.tmdbclient.movie.details.domain.MovieDetails
+import com.example.tmdbclient.movie.details.domain.MovieDetailsInteractor
 import com.example.tmdbclient.shared.ServiceLocator
 import com.google.gson.annotations.SerializedName
 import retrofit2.Call
@@ -36,18 +37,17 @@ interface TmdbMovieDetailsApi {
     ): Call<GetMovieDetails.ResponseBody>
 }
 
-class MovieDetailsBackend: MovieDetailsRepository.MovieDetailsBackendContract {
+class MovieDetailsBackend: MovieDetailsInteractor.DataSource {
 
     private val apiKey = BuildConfig.TMDB_API_KEY
     private val service = ServiceLocator.retrofit.create(TmdbMovieDetailsApi::class.java)
 
-    override fun fetchMovieDetails(movieId: Int): Result<MovieDetailsRepository.MovieDetails> {
+    override fun fetchMovieDetails(movieId: Int): Result<MovieDetails> {
 
         return runCatching {
             getMovieDetails(movieId).let { movieDto -> //DTO - Data Transfer Object
-                MovieDetailsRepository.MovieDetails(
+                MovieDetails(
                     title = movieDto.title,
-                    isAdult = movieDto.isAdult,
                     genres = movieDto.genres.map { it.name },
                     overview = movieDto.overview ?: "",
                     posterPath = movieDto.posterPath ?: "",

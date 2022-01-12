@@ -140,7 +140,7 @@ fun MovieListItem(
         .border(BorderStroke(1.dp, Color.LightGray))
         .clickable(enabled = true, onClick = onMovieClick)
     ) {
-        val posterUrl = TmdbBasePaths.TMDB_POSTER_W300 + movie.posterPath
+        val posterUrl = TmdbBasePaths.TMDB_POSTER_W300_DIRECTORY + movie.posterPath
         Image(
             painter = rememberImagePainter(data = posterUrl),
             contentDescription = "Movie Poster",
@@ -223,7 +223,8 @@ fun ErrorState(state: MovieListState.ErrorState) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = state.exception.message ?: "Something went wrong"
+            text = state.exception.message ?: "Something went wrong",
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Button(
             onClick = {

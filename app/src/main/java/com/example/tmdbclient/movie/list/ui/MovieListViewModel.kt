@@ -33,7 +33,7 @@ sealed class MovieListState {
         class LoadMore(val onResult: (Result<Unit>) -> Unit): Action()
     }
 
-    protected val repository = MovieListInteractor(
+    protected val interactor = MovieListInteractor(
         dataSource = ServiceLocator.movieListDataSource
     )
 
@@ -55,7 +55,7 @@ sealed class MovieListState {
 
         private fun loadInitial(): MovieListState {
 
-            val result = repository.fetchPopularMovies()
+            val result = interactor.fetchPopularMovies()
 
             return if (result.isSuccess) {
                 val movieList = result.getOrDefault(emptyList())
@@ -84,7 +84,7 @@ sealed class MovieListState {
 
         private fun loadInitial(): MovieListState {
 
-            val result = repository.fetchPopularMovies()
+            val result = interactor.fetchPopularMovies()
 
             return if (result.isSuccess) {
                 val movieList = result.getOrDefault(emptyList())
@@ -128,7 +128,7 @@ sealed class MovieListState {
 
             val nextPage = this.movies.count().div(MOVIE_LIST_PAGE_SIZE).inc()
 
-            val newDataRequest = repository.fetchPopularMovies(nextPage)
+            val newDataRequest = interactor.fetchPopularMovies(nextPage)
 
             return if (newDataRequest.isSuccess) {
                 val updates = newDataRequest.getOrDefault(emptyList())

@@ -1,7 +1,9 @@
 package com.example.tmdbclient.movie.details.ui
 
+import android.util.Log
 import androidx.lifecycle.*
-import com.example.tmdbclient.movie.details.domain.MovieDetailsRepository
+import com.example.tmdbclient.movie.details.domain.MovieDetails
+import com.example.tmdbclient.movie.details.domain.MovieDetailsInteractor
 import com.example.tmdbclient.shared.ServiceLocator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -11,7 +13,7 @@ class MovieDetailsViewModel: ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    val state: MutableStateFlow<MovieDetailsState> = MutableStateFlow(MovieDetailsState.Initial)
+    val state: MutableStateFlow<MovieDetailsState> = MutableStateFlow(MovieDetailsState.InitialState())
 
     fun getState(): StateFlow<MovieDetailsState> = state
 
@@ -26,102 +28,120 @@ class MovieDetailsViewModel: ViewModel() {
 
 sealed class MovieDetailsState {
 
-    protected val repository = MovieDetailsRepository(
-        backend = ServiceLocator.movieDetailsBackend
-    )
-
-    sealed class Action(val onResult: (String) -> Unit) {
-        class Load(val movieId: Int, onResult: (String) -> Unit): Action(onResult)
-        class PostRating(val sessionId: String, val movieId: Int, val rating: Float, onResult: (String) -> Unit): Action(onResult)
-        class DeleteRating(val sessionId: String, val movieId: Int, onResult: (String) -> Unit): Action(onResult)
+    sealed class Action {
+        class Load(val movieId: Int): Action()
+        class PostRating(val sessionId: String, val movieId: Int, val rating: Float, val onResult: (String) -> Unit): Action()
+        class DeleteRating(val sessionId: String, val movieId: Int, val onResult: (String) -> Unit): Action()
     }
+
+    protected val interactor = MovieDetailsInteractor(
+        dataSource = ServiceLocator.movieDetailsBackend
+    )
 
     abstract fun handle(action: Action): MovieDetailsState
 
-    object Initial: MovieDetailsState() {
+    class InitialState: MovieDetailsState() {
 
         override fun handle(action: Action): MovieDetailsState {
+
             return when (action) {
                 is Action.Load -> {
-                    val movieDetails = repository.fetchMovieDetails(action.movieId)
-                    movieDetails.let { result ->
-                        var newState: MovieDetailsState = this
-                        result.onSuccess {
-                            newState = Display(it)
-                            action.onResult("Successfully loaded movie details")
-                        }.onFailure {
-                            newState = MovieDetailsState.Error(it)
-                            action.onResult("Failed to load movie details")
-                        }
-                        newState
-                    }
+                    loadMovieDetails(action)
                 }
                 else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
+            }
+        }
+
+        private fun loadMovieDetails(action: Action.Load): MovieDetailsState {
+
+            val movieDetailsRequest = interactor.fetchMovieDetails(action.movieId)
+            return movieDetailsRequest.let { result ->
+                var newState: MovieDetailsState = this
+                result.onSuccess {
+                    newState = DisplayState(it)
+                }.onFailure {
+                    newState = ErrorState(it as Exception)
+                }
+                newState
             }
         }
     }
 
-    data class Error(val exception: Throwable): MovieDetailsState() {
+    class ErrorState(val exception: Exception): MovieDetailsState() {
 
         override fun handle(action: Action): MovieDetailsState {
+
             return when (action) {
                 is Action.Load -> {
-                    val movieDetails = repository.fetchMovieDetails(action.movieId)
-                    movieDetails.let { result ->
-                        var newState: MovieDetailsState = this
-                        result.onSuccess {
-                            newState = Display(it)
-                            action.onResult("Successfully loaded movie details")
-                        }.onFailure {
-                            newState = MovieDetailsState.Error(it)
-                            action.onResult("Failed to load movie details")
-                        }
-                        newState
-                    }
+                    loadMovieDetails(action)
                 }
                 else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
+            }
+        }
+
+        private fun loadMovieDetails(action: Action.Load): MovieDetailsState {
+
+            val movieDetailsRequest = interactor.fetchMovieDetails(action.movieId)
+            return movieDetailsRequest.let { result ->
+                var newState: MovieDetailsState = this
+                result.onSuccess {
+                    newState = DisplayState(it)
+                }.onFailure {
+                    newState = ErrorState(it as Exception)
+                }
+                newState
             }
         }
     }
 
-    data class Display(val content: MovieDetailsRepository.MovieDetails): MovieDetailsState() {
+    class DisplayState(val movieDetails: MovieDetails): MovieDetailsState() {
 
         override fun handle(action: Action): MovieDetailsState {
+
             return when (action) {
                 is Action.PostRating -> {
-                    repository.rateMovie(
-                        action.movieId,
-                        action.sessionId,
-                        action.rating
-                    ).let { result ->
-                        result.onSuccess {
-                            action.onResult("Successfully posted movie rating ${action.rating}")
-                        }.onFailure {
-                            action.onResult("Failed to post movie rating")
-                        }
-                    }
+                    postRating(action)
                     this
                 }
                 is Action.DeleteRating -> {
-                    repository.removeMovieRating(
-                        action.movieId,
-                        action.sessionId
-                    ).let { result ->
-                        result.onSuccess {
-                            action.onResult("Successfully deleted movie rating")
-                        }.onFailure {
-                            action.onResult("Failed to delete movie rating")
-                        }
-                    }
+                    removeRating(action)
                     this
                 }
                 else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
+            }
+        }
+
+        private fun postRating(action: Action.PostRating) {
+
+            interactor.rateMovie(
+                action.movieId,
+                action.sessionId,
+                action.rating
+            ).onSuccess {
+                action.onResult("Successfully posted rating")
+            }.onFailure {
+                action.onResult("Failed to post rating")
+            }
+        }
+
+        private fun removeRating(action: Action.DeleteRating) {
+
+            interactor.removeMovieRating(
+                action.movieId,
+                action.sessionId
+            ).onSuccess {
+                action.onResult("Successfully posted rating")
+            }.onFailure {
+                action.onResult("Failed to post rating")
             }
         }
     }
