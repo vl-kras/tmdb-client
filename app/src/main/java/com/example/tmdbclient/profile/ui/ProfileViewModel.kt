@@ -15,7 +15,7 @@ class ProfileViewModel : ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    val state: MutableStateFlow<ProfileState> = MutableStateFlow(ProfileState.Initial())
+    val state: MutableStateFlow<ProfileState> = MutableStateFlow(ProfileState.Initial)
 
     fun getState(): StateFlow<ProfileState> = state
 
@@ -46,12 +46,12 @@ sealed class ProfileState {
     }
 
     protected val interactor = ProfileInteractor(
-        dataSource = ServiceLocator.profileRepositoryDataSource
+        dataSource = ServiceLocator.getProfileInteractorDataSource()
     )
 
     abstract fun handle(action: Action): ProfileState
 
-    class Initial: ProfileState() {
+    object Initial: ProfileState() {
 
         override fun handle(action: Action): ProfileState {
 
@@ -86,7 +86,7 @@ sealed class ProfileState {
         }
     }
 
-    class ActiveSession(
+    data class ActiveSession(
         val sessionId: String,
         val userId: Int,
         val username: String,

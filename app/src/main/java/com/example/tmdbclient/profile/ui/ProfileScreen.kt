@@ -19,8 +19,6 @@ import kotlinx.coroutines.launch
 
 // tries to be Humble (mostly responsible for drawing the UI)
 
-//TODO refactor!
-
 @Composable
 fun ProfileScreen(profileVM: ProfileViewModel, writeSessionId: (String) -> Unit) {
 

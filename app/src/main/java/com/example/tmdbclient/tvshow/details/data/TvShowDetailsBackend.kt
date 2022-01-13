@@ -2,7 +2,8 @@ package com.example.tmdbclient.tvshow.details.data
 
 import com.example.tmdbclient.*
 import com.example.tmdbclient.shared.ServiceLocator
-import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsRepository
+import com.example.tmdbclient.tvshow.details.domain.TvShowDetails
+import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsInteractor
 import com.google.gson.annotations.SerializedName
 import retrofit2.Call
 import retrofit2.http.*
@@ -34,41 +35,52 @@ interface TmdbShowDetailsApi {
     ): Call<DeleteTvShowRating.ResponseBody>
 }
 
-class TvShowDetailsBackend: TvShowDetailsRepository.TvShowDetailsBackendContract {
+class TvShowDetailsBackend: TvShowDetailsInteractor.DataSource {
 
     private val apiKey = BuildConfig.TMDB_API_KEY
     private val service = ServiceLocator.retrofit.create(TmdbShowDetailsApi::class.java)
 
-    override fun fetchTvShowDetails(showId: Int): TvShowDetailsRepository.TvShowDetails {
+    override fun fetchTvShowDetails(showId: Int): Result<TvShowDetails> {
 
-        return getTvShowDetails(showId).let { tvShow ->
-            TvShowDetailsRepository.TvShowDetails(
-                title = tvShow.name,
-                id = tvShow.id,
-                posterPath = tvShow.posterPath ?: "",
-                overview = tvShow.overview,
-                tagline = tvShow.tagline,
-                status = tvShow.status,
-                userScore = tvShow.voteAverage.toFloat(),
-                genres = tvShow.genres.map { it.name }
-            )
+        return runCatching {
+            getTvShowDetails(showId).let { tvShow ->
+                TvShowDetails(
+                    title = tvShow.name,
+                    id = tvShow.id,
+                    posterPath = tvShow.posterPath ?: "",
+                    overview = tvShow.overview,
+                    tagline = tvShow.tagline,
+                    status = tvShow.status,
+                    userScore = tvShow.voteAverage.toFloat(),
+                    genres = tvShow.genres.map { it.name }
+                )
+            }
         }
     }
 
-    override fun rateTvShow(showId: Int, sessionId: String, rating: Float) {
-        postTvShowRating(showId, rating, sessionId)
+    override fun rateTvShow(showId: Int, sessionId: String, rating: Float): Result<Unit> {
+        return runCatching {
+            postTvShowRating(showId, rating, sessionId)
+        }
     }
 
-    override fun removeTvShowRating(showId: Int, sessionId: String) {
-        deleteTvShowRating(showId, sessionId)
+    override fun removeTvShowRating(showId: Int, sessionId: String): Result<Unit> {
+        return runCatching {
+            deleteTvShowRating(showId, sessionId)
+        }
     }
 
     private fun getTvShowDetails(tvShowId: Int): GetTvShowDetails.ResponseBody {
 
         val request = service.getTvShowDetails(tvShowId, apiKey)
         val response = request.execute()
-        return response.body()
-            ?: throw IOException("Failed to fetch show details")
+
+        return if(response.isSuccessful) {
+            response.body()
+                ?: throw IOException("Failed to fetch show details")
+        } else {
+            throw IOException("Failed to fetch show details")
+        }
     }
 
     private fun postTvShowRating(showId: Int, rating: Float, sessionId: String) {

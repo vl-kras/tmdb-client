@@ -1,171 +1,360 @@
 package com.example.tmdbclient.tvshow.details.ui
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import coil.compose.rememberImagePainter
-import com.example.tmdbclient.R
 import com.example.tmdbclient.profile.ui.ProfileState
 import com.example.tmdbclient.profile.ui.ProfileViewModel
-import com.example.tmdbclient.shared.TmdbBasePaths
+import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_HEIGHT_WIDTH_RATIO
+import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_ORIGINAL_DIRECTORY
+import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsInteractor.Companion.RATING_MAX
+import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsInteractor.Companion.RATING_MIN
+import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsInteractor.Companion.RATING_STEP
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 
 @Composable
-fun TvShowDetailsScreen(profileVM: ProfileViewModel, showId: Int) {
+fun TvShowDetailsScreen(profileVM: ProfileViewModel, showId: Int, navController: NavController) {
+
     val viewModel: TvShowDetailsViewModel = viewModel()
 
     val uiState by viewModel.getState().collectAsState()
 
-    when (uiState) {
-        is TvShowDetailsState.Initial -> {
-            InitialState(showId)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    val channel = Channel<String>()
+
+    SideEffect {
+        coroutineScope.launch {
+            channel.consumeEach { message ->
+                snackbarHostState.showSnackbar(message)
+            }
         }
-        is TvShowDetailsState.Error -> {
-            ErrorState(uiState as TvShowDetailsState.Error, showId)
+    }
+
+    val sendMessage: (String) -> Unit = {
+        coroutineScope.launch {
+            channel.send(it)
         }
-        is TvShowDetailsState.Display -> {
-            DisplayState(uiState as TvShowDetailsState.Display, profileVM)
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            TvShowDetailsScreenFab(onClick = { navController.popBackStack() } )
+        },
+        floatingActionButtonPosition = FabPosition.Center
+    ) {
+        when (uiState) {
+            is TvShowDetailsState.InitialState -> {
+                InitialState(showId)
+            }
+            is TvShowDetailsState.ErrorState -> {
+                ErrorState(uiState as TvShowDetailsState.ErrorState, showId)
+            }
+            is TvShowDetailsState.DisplayState -> {
+                DisplayState(uiState as TvShowDetailsState.DisplayState, profileVM, sendMessage)
+            }
         }
     }
 }
 
 @Composable
-fun DisplayState(state: TvShowDetailsState.Display, profileVM: ProfileViewModel) {
+fun TvShowDetailsScreenFab(onClick: () -> Unit) {
+
+    FloatingActionButton(onClick = onClick ) {
+        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Go back")
+    }
+}
+
+@Composable
+fun DisplayState(state: TvShowDetailsState.DisplayState, profileVM: ProfileViewModel, sendMessage: (String) -> Unit) {
 
     val tvShow = state.content
 
     Column {
-        Text(
-            text = tvShow.title,
-            Modifier.align(Alignment.CenterHorizontally)
+        TvShowTitle(
+            title = tvShow.title,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Row {
-            Image(
-                painter = rememberImagePainter(data = TmdbBasePaths.TMDB_POSTER_ORIGINAL_DIRECTORY + tvShow.posterPath),
-                contentDescription = "Show poster",
-                modifier = Modifier
-                    .aspectRatio(ratio = 0.66f)
-                    .weight(1f)
+            val rowContentsWeight = 1f
+            PosterImage(
+                urlString = TMDB_POSTER_ORIGINAL_DIRECTORY + tvShow.posterPath,
+                modifier = Modifier.weight(rowContentsWeight)
             )
-            Column(Modifier.weight(1f)) {
-                Text(text = tvShow.status)
-                Text(text = tvShow.genres.joinToString { it })
-                Text(text = "${tvShow.userScore.times(10)}%")
-                Text(text = tvShow.tagline)
+            Column(Modifier.weight(rowContentsWeight)) {
 
-                var showRatingDialog by remember { mutableStateOf(false) }
-                if (showRatingDialog) {
-                    RatingDialog(
-                        onChanged = { showRatingDialog = it },
-                        profileVM = profileVM,
-                        showId = tvShow.id
-                    )
-                }
-                Log.d("PROFILE", profileVM.getState().value.toString())
+                TvShowStatus(status = tvShow.status)
+                TvShowGenres(genres = tvShow.genres)
+                TvShowRating(rating = tvShow.userScore)
+                TvShowTagline(tagline = tvShow.tagline)
 
-                if (profileVM.getState().value is ProfileState.ActiveSession) {
-                    Button(
-                        onClick = { showRatingDialog = true }
-                    ) {
-                        Row() {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_baseline_star_24),
-                                contentDescription = "Rating Star"
-                            )
-                            Text(text = "Give Rating")
-                        }
-                    }
+
+                val profileState = profileVM.getState().value
+                if (profileState is ProfileState.ActiveSession) {
+                    RatingButton(profileState, tvShow.id, sendMessage)
                 }
             }
         }
-        Text(text = tvShow.overview)
+        TvShowDescription(description = tvShow.overview)
     }
 }
 
 @Composable
-fun RatingDialog(onChanged: (Boolean) -> Unit, profileVM: ProfileViewModel, showId: Int) {
+fun RatingButton(
+    profileState: ProfileState.ActiveSession,
+    showId: Int, onActionResult: (String) -> Unit
+) {
 
+    var isPostingRating by remember { mutableStateOf(false) }
+    var isRatingDialogShowing by remember { mutableStateOf(false) }
+
+    if (isRatingDialogShowing) {
+        RatingDialogHandler(
+            setIsDialogVisible = { isRatingDialogShowing = it },
+            sessionId = profileState.sessionId,
+            movieId = showId,
+            onActionResult = onActionResult,
+            setIsPostingRating = { isPostingRating = it}
+        )
+    }
+
+    Button( enabled = !isPostingRating,
+        onClick = { isRatingDialogShowing = true }
+    ) {
+        Row {
+            Icon(imageVector = Icons.Default.Star, contentDescription = "Icon: Star")
+            if (isPostingRating) {
+                "Posting"
+            } else {
+                "Give rating"
+            }.let {
+                Text(text = it)
+            }
+        }
+    }
+}
+
+//TODO learn to use composable context
+
+@Composable
+fun RatingDialogHandler(
+    setIsDialogVisible: (Boolean) -> Unit,
+    sessionId: String, movieId: Int,
+    onActionResult: (String) -> Unit,
+    setIsPostingRating: (Boolean) -> Unit
+) {
+
+    val tvShowDetailsViewModel: TvShowDetailsViewModel = viewModel()
     val coroutineScope = rememberCoroutineScope()
 
+    val postRating: (Float) -> Unit = { rating ->
+        coroutineScope.launch {
 
-    var rating: Float by remember { mutableStateOf(0f) }
+            setIsPostingRating(true)
 
-    val viewModel: TvShowDetailsViewModel = viewModel()
+            val action = ratingActionBuilder(rating, sessionId, movieId, onActionResult)
+            tvShowDetailsViewModel.handleAction(action)
 
+        }.invokeOnCompletion {
+            setIsPostingRating(false)
+        }
+    }
 
+    RatingDialog(setIsDialogVisible, postRating)
+}
+
+fun ratingActionBuilder(
+    rating: Float, sessionId: String,
+    showId: Int, onActionResult: (String) -> Unit
+): TvShowDetailsState.Action {
+
+    return when(rating) {
+        0f -> {
+            TvShowDetailsState.Action.DeleteRating(
+                sessionId, showId, onActionResult
+            )
+        }
+        else -> {
+            TvShowDetailsState.Action.PostRating(
+                sessionId, showId, rating, onActionResult
+            )
+        }
+    }
+}
+
+@Composable
+fun RatingDialog(setIsDialogVisible: (Boolean) -> Unit, postRating: (Float) -> Unit) {
+
+    //initial value is average possible rating, which should be 5f
+    var rating by remember { mutableStateOf((RATING_MAX + RATING_MIN) / 2 ) }
+
+    val onConfirm: () -> Unit = {
+        postRating(rating)
+        setIsDialogVisible(false)
+    }
+    val onCancel: () -> Unit = {
+        setIsDialogVisible(false)
+    }
 
     AlertDialog(
-        title = { Text(text = "Select Rating") },
-        onDismissRequest = { onChanged(false) },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val sessionId = (profileVM.getState().value as ProfileState.ActiveSession).sessionId
-                    val action = when (rating) {
-                        0f ->  {
-                            TvShowDetailsState.Action.DeleteRating(
-                                sessionId,
-                                showId
-                            ) { resultString ->
-
-                                Log.d("ACTION", resultString)
-                            }
-                        }
-                        else -> {
-                            TvShowDetailsState.Action.PostRating(
-                                sessionId,
-                                showId,
-                                rating
-                            ) { resultString ->
-
-                                Log.d("ACTION", resultString)
-                            }
-                        }
-                    }
-                    coroutineScope.launch {
-                        viewModel.handleAction(action)
-                    }
-                }
-            ) {
-                Text(text = "Post Rating")
-            }
-        },
-        dismissButton = {
-            Button(onClick = { onChanged(false) }) {
-                Text(text = "Cancel")
-            }
-        },
+        title = { RatingDialogTitle() },
+        onDismissRequest = onCancel,
+        confirmButton = { ConfirmButton(onClick = onConfirm) },
+        dismissButton = { CancelButton(onClick = onCancel) },
         text = {
-            Row {
-                TextButton(
-                    onClick = {
-                        rating = 0f
-                    }
-                ) {
-                    Text(text = "Delete my rating")
-                }
-                for(r in 5..100 step 5) {
-                    TextButton(
-                        onClick = {
-                            rating = (r / 10).toFloat()
-                        }
-                    ) {
-                        Text(text = (r / 10).toString() )
-                    }
-                }
-            }
+            RatingDialogContent(rating, setRating = { rating = it })
         }
     )
 }
 
 @Composable
-fun ErrorState(state: TvShowDetailsState.Error, showId: Int) {
+fun CancelButton(onClick: () -> Unit) {
+    TextButton(onClick = onClick) {
+        Text(text = "Cancel")
+    }
+}
+
+@Composable
+fun ConfirmButton(onClick: () -> Unit) {
+    TextButton(
+        onClick = {
+            onClick()
+        }
+    ) {
+        Text(text = "Post")
+    }
+}
+
+@Composable
+fun RatingDialogTitle() {
+    Text(
+        text = "Select Rating",
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+fun RatingDialogContent(rating: Float, setRating: (Float)-> Unit) {
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        if (rating != RATING_MIN) {
+            DecreaseRatingButton(rating, setRating)
+        }
+
+        SelectedRating(rating)
+
+        if (rating != RATING_MAX) {
+            IncreaseRatingButton(rating, setRating)
+        }
+    }
+}
+
+@Composable
+fun SelectedRating(rating: Float) {
+
+    val ratingAsString = if (rating != RATING_MIN) {
+        rating.toString()
+    } else {
+        "Delete rating"
+    }
+    Text(ratingAsString)
+}
+
+@Composable
+fun DecreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
+    IconButton(
+        onClick = { setRating(rating - RATING_STEP) },
+        content = { DecreaseRatingIcon() }
+    )
+}
+
+@Composable
+fun DecreaseRatingIcon() {
+    Icon(
+        imageVector = Icons.Default.ArrowBack,
+        contentDescription = "Decrease rating"
+    )
+}
+
+@Composable
+fun IncreaseRatingIcon() {
+    Icon(
+        imageVector = Icons.Default.ArrowForward,
+        contentDescription = "Increase rating"
+    )
+}
+
+@Composable
+fun IncreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
+    IconButton(
+        onClick = { setRating(rating + RATING_STEP) },
+        content = { IncreaseRatingIcon() }
+    )
+}
+
+@Composable
+fun TvShowDescription(description: String) {
+    Text(text = description)
+}
+
+@Composable
+fun TvShowTagline(tagline: String) {
+    Text(text = tagline)
+}
+
+@Composable
+fun TvShowRating(rating: Float) {
+    Text(text = "$rating/10")
+}
+
+@Composable
+fun TvShowGenres(genres: List<String>) {
+    Text(text = genres.joinToString())
+}
+
+@Composable
+fun TvShowStatus(status: String) {
+    //status means "Ongoing", "Dead" etc.
+    Text(text = status)
+}
+
+@Composable
+fun TvShowTitle(title: String, modifier: Modifier) {
+    Text(text = title, modifier = modifier)
+}
+
+@Composable
+fun PosterImage(urlString: String, modifier: Modifier) {
+    Image(
+        painter = rememberImagePainter(data = urlString),
+        contentDescription = "TV Show poster",
+        modifier = modifier.aspectRatio(ratio = TMDB_POSTER_HEIGHT_WIDTH_RATIO)
+    )
+}
+
+@Composable
+fun ErrorState(state: TvShowDetailsState.ErrorState, showId: Int) {
 
     val viewModel: TvShowDetailsViewModel = viewModel()
 
@@ -178,11 +367,9 @@ fun ErrorState(state: TvShowDetailsState.Error, showId: Int) {
             isLoading = true
             viewModel.handleAction(
                 TvShowDetailsState.Action.Load(showId)
-                { resultString ->
-
-                    Log.d("ACTION", resultString)
-                }
             )
+
+        }.invokeOnCompletion {
             isLoading = false
         }
     }
@@ -203,10 +390,7 @@ fun InitialState(tvShowId: Int) {
 
     LaunchedEffect(key1 = Unit) {
         isLoading = !isLoading
-        viewModel.handleAction(TvShowDetailsState.Action.Load(tvShowId) { resultString ->
-
-            Log.d("ACTION", resultString)
-        })
+        viewModel.handleAction(TvShowDetailsState.Action.Load(tvShowId))
         isLoading = false
     }
 

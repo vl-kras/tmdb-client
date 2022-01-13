@@ -9,9 +9,11 @@ data class ApiError(
     @SerializedName("status_code") val statusCode: Int,
     @SerializedName("status_message")val statusMessage: String
 ): IOException(statusMessage) {
+
     companion object {
 
         fun from(errorBody: ResponseBody): ApiError {
+
             val converter: Converter<ResponseBody, ApiError> =
                 ServiceLocator.retrofit.responseBodyConverter(
                     ApiError::class.java,

@@ -16,14 +16,18 @@ fun TvShowsNavigation(profileVM: ProfileViewModel) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "show_list") {
+
         composable("show_list") { TvShowListScreen(navController = navController) }
+
         composable(
             route = "tv/{showId}",
             arguments = listOf(navArgument("showId") { type = NavType.IntType } )
         ) {
-            TvShowDetailsScreen(profileVM = profileVM, showId = it.arguments?.getInt("showId") ?: 0)
+            TvShowDetailsScreen(
+                profileVM = profileVM,
+                showId = it.arguments?.getInt("showId") ?: 0,
+                navController = navController
+            )
         }
     }
 }
-
-//TODO refactor all of this flow

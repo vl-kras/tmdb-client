@@ -71,8 +71,11 @@ fun MainScreen(context: Context) {
             startDestination = ScreenTab.Profile.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+
             composable(ScreenTab.Profile.route) { ProfileScreen(profileVM, writeSessionId) }
+
             composable(ScreenTab.Movies.route) { MoviesNavigation(profileVM) }
+
             composable(ScreenTab.TvShows.route) { TvShowsNavigation(profileVM) }
         }
     }
@@ -121,7 +124,7 @@ fun onBottomNavItemClick(navController: NavController, screen: ScreenTab) {
 }
 
 sealed class ScreenTab(val route: String, val label: String, val icon: ImageVector) {
-    object Profile: ScreenTab("profile", "Profile", Icons.Default.Person) //TODO add proper icons
+    object Profile: ScreenTab("profile", "Profile", Icons.Default.Person)
     object Movies: ScreenTab("movies", "Movies", Icons.Outlined.Movie)
     object TvShows: ScreenTab("tv_shows", "TV", Icons.Default.Tv)
 }

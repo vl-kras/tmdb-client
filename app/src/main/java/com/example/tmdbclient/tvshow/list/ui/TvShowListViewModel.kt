@@ -1,22 +1,21 @@
 package com.example.tmdbclient.tvshow.list.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.example.tmdbclient.shared.ServiceLocator
-import com.example.tmdbclient.tvshow.list.domain.TvShowListRepository
+import com.example.tmdbclient.tvshow.list.domain.TvShow
+import com.example.tmdbclient.tvshow.list.domain.TvShowListInteractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 
 class TvShowListViewModel : ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    val state: MutableStateFlow<TvShowListState> = MutableStateFlow(TvShowListState.InitialLoading)
+    val state: MutableStateFlow<TvShowListState> = MutableStateFlow(TvShowListState.InitialState)
 
     fun getState(): StateFlow<TvShowListState> = state
 
@@ -33,90 +32,108 @@ sealed class TvShowListState {
 
     sealed class Action {
         object Load: Action()
-        object LoadMore: Action()
+        class LoadMore(val onResult: (Result<Unit>) -> Unit): Action()
     }
 
-    protected val repository = TvShowListRepository(ServiceLocator.tvShowListBackend)
+    protected val interactor = TvShowListInteractor(
+        dataSource = ServiceLocator.getTvShowListInteractorDataSource()
+    )
 
     abstract fun handle(action: Action): TvShowListState
 
-    object InitialLoading: TvShowListState() {
+    object InitialState: TvShowListState() {
 
         override fun handle(action: Action): TvShowListState {
 
             return when(action) {
                 is Action.Load -> {
-                    try {
-                        Display(content = repository.fetchPopularShows())
-                    }
-                    catch (e: UnknownHostException) {
-                        Error(e)
-                    }
-
+                    loadInitial()
                 }
                 else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
             }
         }
+
+        private fun loadInitial(): TvShowListState {
+
+            return interactor.fetchPopularShows()
+                .fold(
+                    onSuccess = { showList ->
+                        DisplayState(shows = showList)
+                    },
+                    onFailure = { throwable ->
+                        ErrorState(throwable as Exception)
+                    }
+                )
+        }
     }
 
-    data class Display(
-        val content: List<TvShowListRepository.TvShow> = emptyList(),
-        val error: Exception? = null,
+    data class DisplayState(
+        val shows: List<TvShow> = emptyList(),
         val canLoadMore: Boolean = true
     ): TvShowListState() {
-
-        override fun toString(): String {
-            return "Display, error -> ${this.error}, more? -> ${this.canLoadMore}"
-        }
 
         override fun handle(action: Action): TvShowListState {
 
             return when(action) {
                 is Action.LoadMore -> {
-                    try {
-                        val nextPage = this.content.size.div(20).plus(1)
-                        val updates = repository.fetchPopularShows(nextPage)
-                        this.copy(
-                            content = this.content + updates,
-                            error = null
-                        )
-                    }
-                    catch (e: IOException) {
-                        this.copy(error = e, canLoadMore = false)
-                    }
-                    catch (e: UnknownHostException) {
-                        this.copy(error = e)
-                    }
-                    catch (e: SocketTimeoutException) {
-                        this.copy(error = e)
-                    }
+                    loadMoreShows(action)
                 }
                 else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
             }
         }
+
+        private fun loadMoreShows(action: Action.LoadMore): TvShowListState {
+
+            val nextPage = this.shows.size.div(TV_SHOW_LIST_PAGE_SIZE).plus(1)
+
+            return interactor.fetchPopularShows(nextPage).fold(
+                onSuccess = { updates ->
+                    action.onResult(Result.success(Unit))
+                    this.copy(shows = this.shows + updates)
+                },
+                onFailure = { throwable ->
+                    action.onResult(Result.failure(throwable as Exception))
+                    this
+                }
+            )
+        }
     }
 
-    data class Error(val exception: Exception): TvShowListState() {
+    data class ErrorState(val exception: Exception): TvShowListState() {
 
         override fun handle(action: Action): TvShowListState {
 
             return when(action) {
                 is Action.Load -> {
-                    try {
-                        Display(content = repository.fetchPopularShows())
-                    }
-                    catch (e: UnknownHostException) {
-                        Error(e)
-                    }
+                    loadInitial()
                 }
                 else -> {
                     throw IllegalArgumentException("$this cannot handle $action")
                 }
             }
         }
+
+        private fun loadInitial(): TvShowListState {
+
+            return interactor.fetchPopularShows()
+                .fold(
+                    onSuccess = { showList ->
+                        DisplayState(shows = showList)
+                    },
+                    onFailure = { throwable ->
+                        ErrorState(throwable as Exception)
+                    }
+                )
+        }
+    }
+
+    companion object {
+        const val TV_SHOW_LIST_PAGE_SIZE = 20
     }
 }

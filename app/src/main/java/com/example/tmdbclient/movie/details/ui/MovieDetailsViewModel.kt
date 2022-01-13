@@ -35,7 +35,7 @@ sealed class MovieDetailsState {
     }
 
     protected val interactor = MovieDetailsInteractor(
-        dataSource = ServiceLocator.movieDetailsBackend
+        dataSource = ServiceLocator.getMovieDetailsInteractorDataSource()
     )
 
     abstract fun handle(action: Action): MovieDetailsState

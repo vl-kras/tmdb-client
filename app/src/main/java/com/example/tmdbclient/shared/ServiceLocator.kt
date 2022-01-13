@@ -7,9 +7,9 @@ import com.example.tmdbclient.movie.list.domain.MovieListInteractor
 import com.example.tmdbclient.profile.data.ProfileBackend
 import com.example.tmdbclient.profile.domain.ProfileInteractor
 import com.example.tmdbclient.tvshow.details.data.TvShowDetailsBackend
-import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsRepository
+import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsInteractor
 import com.example.tmdbclient.tvshow.list.data.TvShowListBackend
-import com.example.tmdbclient.tvshow.list.domain.TvShowListRepository
+import com.example.tmdbclient.tvshow.list.domain.TvShowListInteractor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -33,25 +33,23 @@ object ServiceLocator {
             .build()
     }
 
-    //TODO switch dataSource getters to factory methods
-
-    val profileRepositoryDataSource: ProfileInteractor.DataSource by lazy {
-        ProfileBackend()
+    fun getProfileInteractorDataSource(): ProfileInteractor.DataSource {
+        return ProfileBackend()
     }
 
-    val movieListDataSource: MovieListInteractor.DataSource by lazy {
-        MovieListBackend()
+    fun getMovieListInteractorDataSource(): MovieListInteractor.DataSource {
+        return MovieListBackend()
     }
 
-    val movieDetailsBackend: MovieDetailsInteractor.DataSource by lazy {
-        MovieDetailsBackend()
+    fun getMovieDetailsInteractorDataSource(): MovieDetailsInteractor.DataSource {
+        return MovieDetailsBackend()
     }
 
-    val tvShowListBackend: TvShowListRepository.TvShowListBackendContract by lazy {
-        TvShowListBackend()
+    fun getTvShowListInteractorDataSource(): TvShowListInteractor.DataSource {
+        return TvShowListBackend()
     }
 
-    val tvShowDetailsBackend: TvShowDetailsRepository.TvShowDetailsBackendContract by lazy {
-        TvShowDetailsBackend()
+    fun getTvShowDetailsInteractorDataSource(): TvShowDetailsInteractor.DataSource {
+        return TvShowDetailsBackend()
     }
 }

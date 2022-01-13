@@ -1,8 +1,10 @@
 package com.example.tmdbclient.tvshow.details.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.example.tmdbclient.shared.ServiceLocator
-import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsRepository
+import com.example.tmdbclient.tvshow.details.domain.TvShowDetails
+import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsInteractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +16,7 @@ class TvShowDetailsViewModel: ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    val state: MutableStateFlow<TvShowDetailsState> = MutableStateFlow(TvShowDetailsState.Initial)
+    val state: MutableStateFlow<TvShowDetailsState> = MutableStateFlow(TvShowDetailsState.InitialState)
 
     fun getState(): StateFlow<TvShowDetailsState> = state
 
@@ -29,81 +31,127 @@ class TvShowDetailsViewModel: ViewModel() {
 
 sealed class TvShowDetailsState {
 
-    protected val repository = TvShowDetailsRepository(
-        backend = ServiceLocator.tvShowDetailsBackend
+    protected val interactor = TvShowDetailsInteractor(
+        dataSource = ServiceLocator.getTvShowDetailsInteractorDataSource()
     )
 
-    sealed class Action(val onResult: (String) -> Unit) {
-        class Load(val showId: Int, onResult: (String)-> Unit): Action(onResult)
-        class PostRating(val sessionId: String, val showId: Int, val rating: Float, onResult: (String) -> Unit): Action(onResult)
-        class DeleteRating(val sessionId: String, val showId: Int, onResult: (String) -> Unit): Action(onResult)
+    sealed class Action {
+        class Load(val showId: Int): Action()
+        class PostRating(val sessionId: String, val showId: Int, val rating: Float, val onResult: (String) -> Unit): Action()
+        class DeleteRating(val sessionId: String, val showId: Int, val onResult: (String) -> Unit): Action()
     }
 
     abstract fun handle(action: Action): TvShowDetailsState
 
-    object Initial: TvShowDetailsState() {
+    object InitialState: TvShowDetailsState() {
 
         override fun handle(action: Action): TvShowDetailsState {
+
             return when (action) {
                 is Action.Load -> {
-                    try {
-                        val tvShowDetails = repository.fetchTvShowDetails(action.showId)
-                        action.onResult("WASD")
-                        Display(tvShowDetails)
-                    }
-                    catch (e: SocketTimeoutException) {
-                        action.onResult
-                        Error(e)
-                    }
+                    loadTvShowDetails(action)
                 }
                 else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
             }
         }
-    }
 
-    data class Error(val exception: Exception): TvShowDetailsState() {
+        private fun loadTvShowDetails(action: Action.Load): TvShowDetailsState {
 
-        override fun handle(action: Action): TvShowDetailsState {
-            return when (action) {
-                is Action.Load -> {
-                    val tvShowDetails = repository.fetchTvShowDetails(action.showId)
-                    action.onResult
-                    Display(tvShowDetails)
-                }
-                else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
-                }
-            }
+            return interactor.fetchTvShowDetails(action.showId)
+                .fold(
+                    onSuccess = { tvShowDetails ->
+                        DisplayState(content = tvShowDetails)
+                    },
+                    onFailure = { throwable ->
+                        ErrorState(throwable as Exception)
+                    }
+                )
         }
     }
 
-    data class Display(val content: TvShowDetailsRepository.TvShowDetails): TvShowDetailsState() {
+    data class ErrorState(val exception: Exception): TvShowDetailsState() {
 
         override fun handle(action: Action): TvShowDetailsState {
+
+            return when (action) {
+                is Action.Load -> {
+                    loadTvShowDetails(action)
+                }
+                else -> {
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
+                }
+            }
+        }
+
+        private fun loadTvShowDetails(action: Action.Load): TvShowDetailsState {
+
+            return interactor.fetchTvShowDetails(action.showId)
+                .fold(
+                    onSuccess = { tvShowDetails ->
+                        DisplayState(content = tvShowDetails)
+                    },
+                    onFailure = { throwable ->
+                        ErrorState(throwable as Exception)
+                    }
+                )
+        }
+    }
+
+    data class DisplayState(val content: TvShowDetails): TvShowDetailsState() {
+
+        override fun handle(action: Action): TvShowDetailsState {
+
             return when (action) {
                 is Action.PostRating -> {
-                    repository.rateTvShow(
-                        action.showId,
-                        action.sessionId,
-                        action.rating
-                    )
-                    action.onResult
-                    this
+                    postRating(action)
                 }
                 is Action.DeleteRating -> {
-                    repository.removeTvShowRating(
-                        action.showId,
-                        action.sessionId
-                    )
-                    action.onResult
-                    this
+                    deleteRating(action)
                 }
                 else -> {
-                    throw IllegalArgumentException("$this cannot handle $action")
+                    Log.e(this.javaClass.name, "$this cannot handle $action")
+                    this
                 }
             }
+        }
+
+        private fun postRating(action: Action.PostRating): TvShowDetailsState {
+
+            return interactor.rateTvShow(
+                action.showId,
+                action.sessionId,
+                action.rating
+            ).fold(
+                onSuccess = {
+                    action.onResult("Successfully posted rating")
+                    this
+                },
+                onFailure = {
+                    action.onResult("Failed to post rating")
+                    this
+                }
+            )
+        }
+
+        private fun deleteRating(action: Action.DeleteRating): TvShowDetailsState {
+
+            return interactor.removeTvShowRating(
+                action.showId,
+                action.sessionId
+            ).fold(
+                onSuccess = {
+                    action.onResult("Successfully deleted rating")
+                    this
+                },
+                onFailure = {
+                    action.onResult("Failed to delete rating")
+                    this
+                }
+            )
         }
     }
 }

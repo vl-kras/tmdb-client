@@ -1,10 +1,9 @@
 package com.example.tmdbclient.tvshow.list.data
 
-import android.util.Log
 import com.example.tmdbclient.BuildConfig
-import com.example.tmdbclient.shared.ApiError
 import com.example.tmdbclient.shared.ServiceLocator
-import com.example.tmdbclient.tvshow.list.domain.TvShowListRepository
+import com.example.tmdbclient.tvshow.list.domain.TvShow
+import com.example.tmdbclient.tvshow.list.domain.TvShowListInteractor
 import com.google.gson.annotations.SerializedName
 import retrofit2.Call
 import retrofit2.http.GET
@@ -21,35 +20,41 @@ interface TmdbShowlistApi {
     ): Call<GetPopularShows.ResponseBody>
 }
 
-class TvShowListBackend: TvShowListRepository.TvShowListBackendContract {
+class TvShowListBackend: TvShowListInteractor.DataSource {
 
-    private val apiKey = BuildConfig.TMDB_API_KEY
+    //    private val apiKey = BuildConfig.TMDB_API_KEY
     private val service = ServiceLocator.retrofit.create(TmdbShowlistApi::class.java)
 
-    override fun fetchPopularShows(page: Int): List<TvShowListRepository.TvShow> {
+    override fun fetchPopularShows(page: Int): Result<List<TvShow>> {
 
-        return getPopularTvShowsByPage(page).map {
-            TvShowListRepository.TvShow(
-                id = it.id,
-                title = it.name,
-                posterPath = it.posterPath ?: ""
-            )
+        return runCatching {
+            getPopularTvShowsByPage(page).map {
+                TvShow(
+                    id = it.id,
+                    title = it.name,
+                    posterPath = it.posterPath ?: ""
+                )
+            }
         }
     }
 
     private fun getPopularTvShowsByPage(page: Int) : List<GetPopularShows.ResponseBody.TvShowInfo> {
 
-        val request = service.getShowsPopular(apiKey, page)
+        val request = service.getShowsPopular(API_KEY, page)
         val response = request.execute()
-        val error = response.errorBody()?.let { ApiError.from(it) }
-        Log.d("BLABLA", error.toString())
 
-        return response.body()?.shows
-            ?: throw IOException("Failed to fetch popular shows, page -> $page")
+        return if (response.isSuccessful) {
+            response.body()?.shows
+                ?: throw IOException("Failed to fetch popular shows, page -> $page")
+        } else {
+            throw IOException("Failed to fetch popular shows, page -> $page")
+        }
+    }
+
+    companion object {
+        private const val API_KEY = BuildConfig.TMDB_API_KEY
     }
 }
-
-class EndOfPaginationReachedException(message: String): Exception(message)
 
 object GetPopularShows {
 

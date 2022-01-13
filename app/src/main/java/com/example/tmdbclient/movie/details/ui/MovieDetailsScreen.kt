@@ -64,7 +64,9 @@ fun ScreenContents(
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        floatingActionButton = { MovieDetailsScreenFab(navController) },
+        floatingActionButton = {
+            MovieDetailsScreenFab(onClick = { navController.popBackStack() })
+        },
         floatingActionButtonPosition = FabPosition.Center
     ) {
         val movieDetailsVM: MovieDetailsViewModel = viewModel()
@@ -85,14 +87,16 @@ fun ScreenContents(
             }
         }
     }
-
 }
 
 @Composable
-fun MovieDetailsScreenFab(navController: NavController) {
+fun MovieDetailsScreenFab(onClick: () -> Unit) {
 
-    FloatingActionButton(onClick = { navController.popBackStack() } ) {
-        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Go back")
+    FloatingActionButton(onClick = onClick ) {
+        Icon(
+            imageVector = Icons.Default.ArrowBack,
+            contentDescription = "Go back"
+        )
     }
 }
 
@@ -122,9 +126,14 @@ fun DisplayState(
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Row {
-            MoviePoster(posterId = movieDetails.posterPath, modifier = Modifier.weight(1f))
+            val rowContentsWeight = 1f
+            MoviePoster(
+                posterId = movieDetails.posterPath,
+                modifier = Modifier.weight(rowContentsWeight)
+            )
 
-            Column(Modifier.weight(1f)) {
+            Column(Modifier.weight(rowContentsWeight)) {
+
                 MovieRuntime(runtime = movieDetails.runtime)
                 MovieGenres(genres = movieDetails.genres)
                 MovieRating(rating = movieDetails.userScore)
@@ -184,7 +193,11 @@ fun MovieRuntime(runtime: Int) {
 }
 
 @Composable
-fun RatingButton(profileState: ProfileState.ActiveSession, movieId: Int, onActionResult: (String) -> Unit) {
+fun RatingButton(
+    profileState: ProfileState.ActiveSession,
+    movieId: Int, onActionResult: (String) -> Unit
+) {
+
     var isPostingRating by remember { mutableStateOf(false) }
     var isRatingDialogShowing by remember { mutableStateOf(false) }
 
@@ -299,7 +312,7 @@ fun ConfirmButton(onClick: () -> Unit) {
             onClick()
         }
     ) {
-        Text(text = "Confirm")
+        Text(text = "Post")
     }
 }
 

@@ -35,7 +35,7 @@ sealed class MovieListState {
     }
 
     protected val interactor = MovieListInteractor(
-        dataSource = ServiceLocator.movieListDataSource
+        dataSource = ServiceLocator.getMovieListInteractorDataSource()
     )
 
     abstract fun handle(action: Action) : MovieListState
@@ -117,7 +117,6 @@ sealed class MovieListState {
         private fun loadMore(action: Action.LoadMore): DisplayState {
 
             val nextPage = this.movies.count().div(MOVIE_LIST_PAGE_SIZE).inc()
-
 
             return interactor.fetchPopularMovies(nextPage).fold(
                 onSuccess = { updates ->

@@ -8,10 +8,7 @@ import com.example.tmdbclient.shared.theme.MyApplicationTheme
 
 class MainActivity : AppCompatActivity() {
 
-    //TODO implement toolBar with navigateUp
-    //TODO implement error handling in retrofit calls (200,300,400,500 codes into Result)
     //TODO de-hardcode all string values
-    //TODO add FAB to screen scaffolds, implement onNavigateApp
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,8 +24,4 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(composeView)
     }
-
-//    override fun onSupportNavigateUp(): Boolean {
-//        return findNavController(R.id.fragment_container).navigateUp()
-//    }
 }
