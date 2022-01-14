@@ -1,6 +1,5 @@
 package com.example.tmdbclient.tvshow.list.data
 
-import com.example.tmdbclient.BuildConfig
 import com.example.tmdbclient.shared.ServiceLocator
 import com.example.tmdbclient.tvshow.list.domain.TvShow
 import com.example.tmdbclient.tvshow.list.domain.TvShowListInteractor
@@ -22,8 +21,8 @@ interface TmdbShowlistApi {
 
 class TvShowListBackend: TvShowListInteractor.DataSource {
 
-    //    private val apiKey = BuildConfig.TMDB_API_KEY
-    private val service = ServiceLocator.retrofit.create(TmdbShowlistApi::class.java)
+    private val apiKey = ServiceLocator.getApiKey()
+    private val service = ServiceLocator.getRetrofit().create(TmdbShowlistApi::class.java)
 
     override fun fetchPopularShows(page: Int): Result<List<TvShow>> {
 
@@ -40,7 +39,7 @@ class TvShowListBackend: TvShowListInteractor.DataSource {
 
     private fun getPopularTvShowsByPage(page: Int) : List<GetPopularShows.ResponseBody.TvShowInfo> {
 
-        val request = service.getShowsPopular(API_KEY, page)
+        val request = service.getShowsPopular(apiKey, page)
         val response = request.execute()
 
         return if (response.isSuccessful) {
@@ -51,9 +50,9 @@ class TvShowListBackend: TvShowListInteractor.DataSource {
         }
     }
 
-    companion object {
-        private const val API_KEY = BuildConfig.TMDB_API_KEY
-    }
+//    companion object {
+//        private const val API_KEY = BuildConfig.TMDB_API_KEY
+//    }
 }
 
 object GetPopularShows {

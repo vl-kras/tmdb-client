@@ -15,8 +15,8 @@ class TvShowListViewModel : ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    val state: MutableStateFlow<TvShowListState> = MutableStateFlow(TvShowListState.InitialState)
-
+    private val state: MutableStateFlow<TvShowListState> =
+        MutableStateFlow(TvShowListState.InitialState)
     fun getState(): StateFlow<TvShowListState> = state
 
     suspend fun handleAction(action: TvShowListState.Action) {

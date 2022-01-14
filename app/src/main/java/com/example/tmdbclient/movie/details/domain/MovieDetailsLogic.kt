@@ -18,7 +18,9 @@ class MovieDetailsInteractor(val dataSource: DataSource) {
         return if ( (rating in 0.5f..10.0f) and (rating.mod(0.5f) == 0f) ) {
             dataSource.rateMovie(movieId, sessionId, rating)
         } else {
-            throw IllegalArgumentException("Rating must be in range [0.5..10 step 0.5]")
+            Result.failure(
+                exception = IllegalArgumentException("Rating must be in range [0.5..10 step 0.5]")
+            )
         }
     }
 

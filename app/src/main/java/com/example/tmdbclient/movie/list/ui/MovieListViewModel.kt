@@ -15,7 +15,7 @@ class MovieListViewModel : ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    val state: MutableStateFlow<MovieListState> = MutableStateFlow(MovieListState.InitialState())
+    private val state: MutableStateFlow<MovieListState> = MutableStateFlow(MovieListState.InitialState())
     fun getState(): StateFlow<MovieListState> = state
 
     suspend fun handleAction(action: MovieListState.Action) {

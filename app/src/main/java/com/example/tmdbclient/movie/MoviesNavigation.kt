@@ -11,7 +11,7 @@ import com.example.tmdbclient.movie.list.ui.MovieListScreen
 import com.example.tmdbclient.profile.ui.ProfileViewModel
 
 @Composable
-fun MoviesNavigation(profileVM: ProfileViewModel) {
+fun MoviesNavigation() {
 
     //TODO maybe switch to sub graphs ??
 
@@ -29,7 +29,6 @@ fun MoviesNavigation(profileVM: ProfileViewModel) {
             )
         ) {
             MovieDetailsScreen(
-                profileVM = profileVM,
                 movieId = it.arguments?.getInt("movieId") ?: 0,
                 navController =  navController
             )

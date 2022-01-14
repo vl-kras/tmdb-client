@@ -15,8 +15,7 @@ class ProfileViewModel : ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    val state: MutableStateFlow<ProfileState> = MutableStateFlow(ProfileState.Initial)
-
+    private val state: MutableStateFlow<ProfileState> = MutableStateFlow(ProfileState.Initial)
     fun getState(): StateFlow<ProfileState> = state
 
     suspend fun handleAction(action: ProfileState.Action) {

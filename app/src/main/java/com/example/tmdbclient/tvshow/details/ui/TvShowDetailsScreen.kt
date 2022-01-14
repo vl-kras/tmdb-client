@@ -15,7 +15,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberImagePainter
 import com.example.tmdbclient.profile.ui.ProfileState
-import com.example.tmdbclient.profile.ui.ProfileViewModel
+import com.example.tmdbclient.shared.LocalProfileVM
 import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_HEIGHT_WIDTH_RATIO
 import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_ORIGINAL_DIRECTORY
 import com.example.tmdbclient.tvshow.details.domain.TvShowDetailsInteractor.Companion.RATING_MAX
@@ -26,7 +26,7 @@ import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 
 @Composable
-fun TvShowDetailsScreen(profileVM: ProfileViewModel, showId: Int, navController: NavController) {
+fun TvShowDetailsScreen(showId: Int, navController: NavController) {
 
     val viewModel: TvShowDetailsViewModel = viewModel()
 
@@ -66,14 +66,14 @@ fun TvShowDetailsScreen(profileVM: ProfileViewModel, showId: Int, navController:
                 ErrorState(uiState as TvShowDetailsState.ErrorState, showId)
             }
             is TvShowDetailsState.DisplayState -> {
-                DisplayState(uiState as TvShowDetailsState.DisplayState, profileVM, sendMessage)
+                DisplayState(uiState as TvShowDetailsState.DisplayState, sendMessage)
             }
         }
     }
 }
 
 @Composable
-fun TvShowDetailsScreenFab(onClick: () -> Unit) {
+private fun TvShowDetailsScreenFab(onClick: () -> Unit) {
 
     FloatingActionButton(onClick = onClick ) {
         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Go back")
@@ -81,7 +81,7 @@ fun TvShowDetailsScreenFab(onClick: () -> Unit) {
 }
 
 @Composable
-fun DisplayState(state: TvShowDetailsState.DisplayState, profileVM: ProfileViewModel, sendMessage: (String) -> Unit) {
+private fun DisplayState(state: TvShowDetailsState.DisplayState, sendMessage: (String) -> Unit) {
 
     val tvShow = state.content
 
@@ -104,7 +104,7 @@ fun DisplayState(state: TvShowDetailsState.DisplayState, profileVM: ProfileViewM
                 TvShowTagline(tagline = tvShow.tagline)
 
 
-                val profileState = profileVM.getState().value
+                val profileState = LocalProfileVM.current.getState().value
                 if (profileState is ProfileState.ActiveSession) {
                     RatingButton(profileState, tvShow.id, sendMessage)
                 }
@@ -115,7 +115,7 @@ fun DisplayState(state: TvShowDetailsState.DisplayState, profileVM: ProfileViewM
 }
 
 @Composable
-fun RatingButton(
+private fun RatingButton(
     profileState: ProfileState.ActiveSession,
     showId: Int, onActionResult: (String) -> Unit
 ) {
@@ -152,7 +152,7 @@ fun RatingButton(
 //TODO learn to use composable context
 
 @Composable
-fun RatingDialogHandler(
+private fun RatingDialogHandler(
     setIsDialogVisible: (Boolean) -> Unit,
     sessionId: String, movieId: Int,
     onActionResult: (String) -> Unit,
@@ -178,7 +178,7 @@ fun RatingDialogHandler(
     RatingDialog(setIsDialogVisible, postRating)
 }
 
-fun ratingActionBuilder(
+private fun ratingActionBuilder(
     rating: Float, sessionId: String,
     showId: Int, onActionResult: (String) -> Unit
 ): TvShowDetailsState.Action {
@@ -198,7 +198,7 @@ fun ratingActionBuilder(
 }
 
 @Composable
-fun RatingDialog(setIsDialogVisible: (Boolean) -> Unit, postRating: (Float) -> Unit) {
+private fun RatingDialog(setIsDialogVisible: (Boolean) -> Unit, postRating: (Float) -> Unit) {
 
     //initial value is average possible rating, which should be 5f
     var rating by remember { mutableStateOf((RATING_MAX + RATING_MIN) / 2 ) }
@@ -223,14 +223,14 @@ fun RatingDialog(setIsDialogVisible: (Boolean) -> Unit, postRating: (Float) -> U
 }
 
 @Composable
-fun CancelButton(onClick: () -> Unit) {
+private fun CancelButton(onClick: () -> Unit) {
     TextButton(onClick = onClick) {
         Text(text = "Cancel")
     }
 }
 
 @Composable
-fun ConfirmButton(onClick: () -> Unit) {
+private fun ConfirmButton(onClick: () -> Unit) {
     TextButton(
         onClick = {
             onClick()
@@ -241,7 +241,7 @@ fun ConfirmButton(onClick: () -> Unit) {
 }
 
 @Composable
-fun RatingDialogTitle() {
+private fun RatingDialogTitle() {
     Text(
         text = "Select Rating",
         textAlign = TextAlign.Center,
@@ -250,7 +250,7 @@ fun RatingDialogTitle() {
 }
 
 @Composable
-fun RatingDialogContent(rating: Float, setRating: (Float)-> Unit) {
+private fun RatingDialogContent(rating: Float, setRating: (Float)-> Unit) {
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -271,7 +271,7 @@ fun RatingDialogContent(rating: Float, setRating: (Float)-> Unit) {
 }
 
 @Composable
-fun SelectedRating(rating: Float) {
+private fun SelectedRating(rating: Float) {
 
     val ratingAsString = if (rating != RATING_MIN) {
         rating.toString()
@@ -282,7 +282,7 @@ fun SelectedRating(rating: Float) {
 }
 
 @Composable
-fun DecreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
+private fun DecreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
     IconButton(
         onClick = { setRating(rating - RATING_STEP) },
         content = { DecreaseRatingIcon() }
@@ -290,7 +290,7 @@ fun DecreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
 }
 
 @Composable
-fun DecreaseRatingIcon() {
+private fun DecreaseRatingIcon() {
     Icon(
         imageVector = Icons.Default.ArrowBack,
         contentDescription = "Decrease rating"
@@ -298,7 +298,7 @@ fun DecreaseRatingIcon() {
 }
 
 @Composable
-fun IncreaseRatingIcon() {
+private fun IncreaseRatingIcon() {
     Icon(
         imageVector = Icons.Default.ArrowForward,
         contentDescription = "Increase rating"
@@ -306,7 +306,7 @@ fun IncreaseRatingIcon() {
 }
 
 @Composable
-fun IncreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
+private fun IncreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
     IconButton(
         onClick = { setRating(rating + RATING_STEP) },
         content = { IncreaseRatingIcon() }
@@ -314,38 +314,38 @@ fun IncreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
 }
 
 @Composable
-fun TvShowDescription(description: String) {
+private fun TvShowDescription(description: String) {
     Text(text = description)
 }
 
 @Composable
-fun TvShowTagline(tagline: String) {
+private fun TvShowTagline(tagline: String) {
     Text(text = tagline)
 }
 
 @Composable
-fun TvShowRating(rating: Float) {
+private fun TvShowRating(rating: Float) {
     Text(text = "$rating/10")
 }
 
 @Composable
-fun TvShowGenres(genres: List<String>) {
+private fun TvShowGenres(genres: List<String>) {
     Text(text = genres.joinToString())
 }
 
 @Composable
-fun TvShowStatus(status: String) {
+private fun TvShowStatus(status: String) {
     //status means "Ongoing", "Dead" etc.
     Text(text = status)
 }
 
 @Composable
-fun TvShowTitle(title: String, modifier: Modifier) {
+private fun TvShowTitle(title: String, modifier: Modifier) {
     Text(text = title, modifier = modifier)
 }
 
 @Composable
-fun PosterImage(urlString: String, modifier: Modifier) {
+private fun PosterImage(urlString: String, modifier: Modifier) {
     Image(
         painter = rememberImagePainter(data = urlString),
         contentDescription = "TV Show poster",
@@ -354,7 +354,7 @@ fun PosterImage(urlString: String, modifier: Modifier) {
 }
 
 @Composable
-fun ErrorState(state: TvShowDetailsState.ErrorState, showId: Int) {
+private fun ErrorState(state: TvShowDetailsState.ErrorState, showId: Int) {
 
     val viewModel: TvShowDetailsViewModel = viewModel()
 
@@ -382,7 +382,7 @@ fun ErrorState(state: TvShowDetailsState.ErrorState, showId: Int) {
 }
 
 @Composable
-fun InitialState(tvShowId: Int) {
+private fun InitialState(tvShowId: Int) {
 
     val viewModel: TvShowDetailsViewModel = viewModel()
 
@@ -400,7 +400,7 @@ fun InitialState(tvShowId: Int) {
 }
 
 @Composable
-fun ErrorMessageWithRetry(error: Exception, onRetry: () -> Unit ) {
+private fun ErrorMessageWithRetry(error: Exception, onRetry: () -> Unit ) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -416,7 +416,7 @@ fun ErrorMessageWithRetry(error: Exception, onRetry: () -> Unit ) {
 }
 
 @Composable
-fun LoadingIndicator() {
+private fun LoadingIndicator() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center

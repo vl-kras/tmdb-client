@@ -13,8 +13,8 @@ class MovieDetailsViewModel: ViewModel() {
 
     private val ioDispatcher = Dispatchers.IO
 
-    val state: MutableStateFlow<MovieDetailsState> = MutableStateFlow(MovieDetailsState.InitialState())
-
+    private val state: MutableStateFlow<MovieDetailsState> =
+        MutableStateFlow(MovieDetailsState.InitialState())
     fun getState(): StateFlow<MovieDetailsState> = state
 
     suspend fun handleAction(action: MovieDetailsState.Action) {

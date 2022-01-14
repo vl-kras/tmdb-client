@@ -22,7 +22,7 @@ interface TmdbMovieListApi {
 class MovieListBackend: MovieListInteractor.DataSource {
 
     private val apiKey = BuildConfig.TMDB_API_KEY
-    private val service = ServiceLocator.retrofit.create(TmdbMovieListApi::class.java)
+    private val service = ServiceLocator.getRetrofit().create(TmdbMovieListApi::class.java)
 
     override fun fetchPopularMovies(page: Int): Result<List<Movie>> {
 

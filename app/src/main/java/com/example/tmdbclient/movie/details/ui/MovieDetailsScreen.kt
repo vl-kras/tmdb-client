@@ -10,15 +10,18 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberImagePainter
+import com.example.tmdbclient.R
 import com.example.tmdbclient.movie.details.domain.MovieDetailsInteractor.Companion.RATING_MAX
 import com.example.tmdbclient.movie.details.domain.MovieDetailsInteractor.Companion.RATING_MIN
 import com.example.tmdbclient.movie.details.domain.MovieDetailsInteractor.Companion.RATING_STEP
 import com.example.tmdbclient.profile.ui.ProfileState
 import com.example.tmdbclient.profile.ui.ProfileViewModel
+import com.example.tmdbclient.shared.LocalProfileVM
 import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_HEIGHT_WIDTH_RATIO
 import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_ORIGINAL_DIRECTORY
 import kotlinx.coroutines.channels.Channel
@@ -26,7 +29,7 @@ import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 
 @Composable
-fun MovieDetailsScreen(profileVM: ProfileViewModel, movieId: Int, navController: NavController) {
+fun MovieDetailsScreen(movieId: Int, navController: NavController) {
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -49,16 +52,15 @@ fun MovieDetailsScreen(profileVM: ProfileViewModel, movieId: Int, navController:
 
     ScreenContents(
         navController, snackbarHostState,
-        movieId, profileVM, sendMessage
+        movieId, sendMessage
     )
 }
 
 @Composable
-fun ScreenContents(
+private fun ScreenContents(
     navController: NavController,
     snackbarHostState: SnackbarHostState,
     movieId: Int,
-    profileVM: ProfileViewModel,
     sendMessage: (String) -> Unit
 ) {
 
@@ -82,7 +84,7 @@ fun ScreenContents(
             is MovieDetailsState.DisplayState -> {
                 DisplayState(
                     state as MovieDetailsState.DisplayState,
-                    profileVM, movieId, sendMessage
+                    movieId, sendMessage
                 )
             }
         }
@@ -90,35 +92,34 @@ fun ScreenContents(
 }
 
 @Composable
-fun MovieDetailsScreenFab(onClick: () -> Unit) {
+private fun MovieDetailsScreenFab(onClick: () -> Unit) {
 
     FloatingActionButton(onClick = onClick ) {
         Icon(
             imageVector = Icons.Default.ArrowBack,
-            contentDescription = "Go back"
+            contentDescription = stringResource(R.string.go_back_arrow_description)
         )
     }
 }
 
 @Composable
-fun MoviePoster(posterId: String, modifier: Modifier) {
+private fun MoviePoster(posterId: String, modifier: Modifier) {
     Image(
         painter = rememberImagePainter(data = TMDB_POSTER_ORIGINAL_DIRECTORY + posterId),
-        contentDescription = "Movie poster",
+        contentDescription = stringResource(R.string.movie_poster_description),
         modifier = modifier.aspectRatio(ratio = TMDB_POSTER_HEIGHT_WIDTH_RATIO)
     )
 }
 
 @Composable
-fun DisplayState(
+private fun DisplayState(
     state: MovieDetailsState.DisplayState,
-    profileVM: ProfileViewModel,
     movieId: Int,
     onActionResult: (String) -> Unit
 ) {
 
     val movieDetails = state.movieDetails
-    val profileState = profileVM.getState().collectAsState()
+    val profileState = LocalProfileVM.current.getState().collectAsState()
 
     Column(Modifier.fillMaxSize()) {
         Text(
@@ -155,27 +156,27 @@ fun DisplayState(
 const val MINUTES_IN_HOUR = 60
 
 @Composable
-fun MovieDescription(description: String) {
+private fun MovieDescription(description: String) {
     Text(text = description)
 }
 
 @Composable
-fun MovieTagline(tagline: String) {
+private fun MovieTagline(tagline: String) {
     Text(text = tagline)
 }
 
 @Composable
-fun MovieRating(rating: Float) {
+private fun MovieRating(rating: Float) {
     Text(text = "$rating/10")
 }
 
 @Composable
-fun MovieGenres(genres: List<String>) {
+private fun MovieGenres(genres: List<String>) {
     Text(text = genres.joinToString() )
 }
 
 @Composable
-fun MovieRuntime(runtime: Int) {
+private fun MovieRuntime(runtime: Int) {
 
     val hours = runtime.div(MINUTES_IN_HOUR)
     val minutes = runtime.mod(MINUTES_IN_HOUR)
@@ -193,7 +194,7 @@ fun MovieRuntime(runtime: Int) {
 }
 
 @Composable
-fun RatingButton(
+private fun RatingButton(
     profileState: ProfileState.ActiveSession,
     movieId: Int, onActionResult: (String) -> Unit
 ) {
@@ -216,8 +217,11 @@ fun RatingButton(
     ) {
         if (!isPostingRating) {
             Row {
-                Icon(imageVector = Icons.Default.Star, contentDescription = "Icon: Star")
-                Text(text = "Give Rating")
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = stringResource(R.string.rating_button_icon_description)
+                )
+                Text(text = stringResource(R.string.rating_button_label))
             }
         } else {
             LinearProgressIndicator()
@@ -228,7 +232,7 @@ fun RatingButton(
 //TODO learn to use composable context
 
 @Composable
-fun RatingDialogHandler(
+private fun RatingDialogHandler(
     setIsDialogVisible: (Boolean) -> Unit,
     sessionId: String, movieId: Int,
     onActionResult: (String) -> Unit,
@@ -254,7 +258,7 @@ fun RatingDialogHandler(
     RatingDialog(setIsDialogVisible, postRating)
 }
 
-fun ratingActionBuilder(
+private fun ratingActionBuilder(
     rating: Float, sessionId: String,
     movieId: Int, onActionResult: (String) -> Unit
 ): MovieDetailsState.Action {
@@ -274,7 +278,7 @@ fun ratingActionBuilder(
 }
 
 @Composable
-fun RatingDialog(setIsDialogVisible: (Boolean) -> Unit, postRating: (Float) -> Unit) {
+private fun RatingDialog(setIsDialogVisible: (Boolean) -> Unit, postRating: (Float) -> Unit) {
 
     //initial value is average possible rating, which should be 5f
     var rating by remember { mutableStateOf((RATING_MAX + RATING_MIN) / 2 ) }
@@ -299,34 +303,34 @@ fun RatingDialog(setIsDialogVisible: (Boolean) -> Unit, postRating: (Float) -> U
 }
 
 @Composable
-fun CancelButton(onClick: () -> Unit) {
+private fun CancelButton(onClick: () -> Unit) {
     TextButton(onClick = onClick) {
-        Text(text = "Cancel")
+        Text(text = stringResource(R.string.cancel_button_label))
     }
 }
 
 @Composable
-fun ConfirmButton(onClick: () -> Unit) {
+private fun ConfirmButton(onClick: () -> Unit) {
     TextButton(
         onClick = {
             onClick()
         }
     ) {
-        Text(text = "Post")
+        Text(text = stringResource(R.string.confirm_rating_button_text))
     }
 }
 
 @Composable
-fun RatingDialogTitle() {
+private fun RatingDialogTitle() {
     Text(
-        text = "Select Rating",
+        text = stringResource(R.string.rating_dialog_title),
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth()
     )
 }
 
 @Composable
-fun RatingDialogContent(rating: Float, setRating: (Float)-> Unit) {
+private fun RatingDialogContent(rating: Float, setRating: (Float)-> Unit) {
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -347,18 +351,18 @@ fun RatingDialogContent(rating: Float, setRating: (Float)-> Unit) {
 }
 
 @Composable
-fun SelectedRating(rating: Float) {
+private fun SelectedRating(rating: Float) {
 
     val ratingAsString = if (rating != RATING_MIN) {
         rating.toString()
     } else {
-        "Delete rating"
+        stringResource(R.string.delete_rating_option_text)
     }
     Text(ratingAsString)
 }
 
 @Composable
-fun DecreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
+private fun DecreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
     IconButton(
         onClick = { setRating(rating - RATING_STEP) },
         content = { DecreaseRatingIcon() }
@@ -366,23 +370,23 @@ fun DecreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
 }
 
 @Composable
-fun DecreaseRatingIcon() {
+private fun DecreaseRatingIcon() {
     Icon(
         imageVector = Icons.Default.ArrowBack,
-        contentDescription = "Decrease rating"
+        contentDescription = stringResource(R.string.decrease_rating_button_description)
     )
 }
 
 @Composable
-fun IncreaseRatingIcon() {
+private fun IncreaseRatingIcon() {
     Icon(
         imageVector = Icons.Default.ArrowForward,
-        contentDescription = "Increase rating"
+        contentDescription = stringResource(R.string.increase_rating_button_description)
     )
 }
 
 @Composable
-fun IncreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
+private fun IncreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
     IconButton(
         onClick = { setRating(rating + RATING_STEP) },
         content = { IncreaseRatingIcon() }
@@ -390,7 +394,7 @@ fun IncreaseRatingButton(rating: Float, setRating: (Float) -> Unit) {
 }
 
 @Composable
-fun ErrorState(state: MovieDetailsState.ErrorState, movieId: Int) {
+private fun ErrorState(state: MovieDetailsState.ErrorState, movieId: Int) {
 
     val movieDetailsVM: MovieDetailsViewModel = viewModel()
     val coroutineScope = rememberCoroutineScope()
@@ -411,16 +415,16 @@ fun ErrorState(state: MovieDetailsState.ErrorState, movieId: Int) {
 }
 
 @Composable
-fun ErrorStateView(isLoading: Boolean, exception: Exception, onRetry: () -> Unit) {
+private fun ErrorStateView(isLoading: Boolean, exception: Exception, onRetry: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         if (!isLoading) {
-            Text(text = exception.message ?: "Something went wrong")
+            Text(text = exception.message ?: stringResource(R.string.generic_exception_message))
             Button(onClick = onRetry ) {
-                Text(text = "Retry")
+                Text(text = stringResource(R.string.retry_button_text))
             }
         } else {
             LoadingIndicator()
@@ -429,7 +433,7 @@ fun ErrorStateView(isLoading: Boolean, exception: Exception, onRetry: () -> Unit
 }
 
 @Composable
-fun InitialState(movieId: Int) {
+private fun InitialState(movieId: Int) {
 
     val movieDetailsVM: MovieDetailsViewModel = viewModel()
     var isLoading by remember { mutableStateOf(false) }
@@ -449,7 +453,7 @@ fun InitialState(movieId: Int) {
 }
 
 @Composable
-fun LoadingIndicator() {
+private fun LoadingIndicator() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center

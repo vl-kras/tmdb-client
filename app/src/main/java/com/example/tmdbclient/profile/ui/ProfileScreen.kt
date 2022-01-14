@@ -8,11 +8,14 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.tmdbclient.R
+import com.example.tmdbclient.shared.LocalProfileVM
+import com.example.tmdbclient.shared.LocalSessionIDWriter
 import com.example.tmdbclient.shared.theme.Typography
-import com.example.tmdbclient.tvshow.list.ui.LoadingIndicator
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
@@ -20,9 +23,9 @@ import kotlinx.coroutines.launch
 // tries to be Humble (mostly responsible for drawing the UI)
 
 @Composable
-fun ProfileScreen(profileVM: ProfileViewModel, writeSessionId: (String) -> Unit) {
+fun ProfileScreen() {
 
-    val state by profileVM.getState().collectAsState()
+    val state by LocalProfileVM.current.getState().collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -54,17 +57,15 @@ fun ProfileScreen(profileVM: ProfileViewModel, writeSessionId: (String) -> Unit)
                     InitialState()
                 }
                 is ProfileState.NoSession -> {
-                    writeSessionId("")
+                    LocalSessionIDWriter.current("")
                     NoSessionState(
-                        profileVM = profileVM,
                         onActionResult = { sendMessage(it) }
                     )
                 }
                 is ProfileState.ActiveSession -> {
-                    writeSessionId((state as ProfileState.ActiveSession).sessionId)
+                    LocalSessionIDWriter.current((state as ProfileState.ActiveSession).sessionId)
                     ActiveUser(
                         state = state as ProfileState.ActiveSession,
-                        profileVM =  profileVM,
                         onActionResult = { sendMessage(it) }
                     )
                 }
@@ -74,15 +75,13 @@ fun ProfileScreen(profileVM: ProfileViewModel, writeSessionId: (String) -> Unit)
 }
 
 @Composable
-fun InitialState() {
+private fun InitialState() {
     LoadingIndicator()
-
 }
 
 @Composable
-fun ActiveUser(
+private fun ActiveUser(
     state: ProfileState.ActiveSession,
-    profileVM: ProfileViewModel,
     onActionResult: (String)-> Unit
 ) {
 
@@ -100,21 +99,21 @@ fun ActiveUser(
         ProfileSessionId(state.sessionId)
         SignOutDialogButton(setIsSignOutDialogShowing)
     }
-    SignOutDialog(profileVM,
+    SignOutDialog(
         isSignOutDialogShowing, setIsSignOutDialogShowing,
         onActionResult
     )
 }
 
 @Composable
-fun SignOutDialogButton(setIsDialogShowing: (Boolean) -> Unit) {
+private fun SignOutDialogButton(setIsDialogShowing: (Boolean) -> Unit) {
     Button(onClick = { setIsDialogShowing(true) }) {
-        Text(text = "Sign out")
+        Text(text = stringResource(R.string.sign_out_button_text))
     }
 }
 
 @Composable
-fun ProfileSessionId(sessionId: String) {
+private fun ProfileSessionId(sessionId: String) {
     Text(
         text = "Session ID: $sessionId",
         style = Typography.overline
@@ -122,7 +121,7 @@ fun ProfileSessionId(sessionId: String) {
 }
 
 @Composable
-fun ProfileName(name: String) {
+private fun ProfileName(name: String) {
     Text(
         text = "Signed in as $name",
         style = Typography.subtitle1
@@ -130,7 +129,7 @@ fun ProfileName(name: String) {
 }
 
 @Composable
-fun ProfileUsernameAndId(username: String, userId: Int) {
+private fun ProfileUsernameAndId(username: String, userId: Int) {
     Text(
         text = "(${username}#ID-${userId})",
         style = Typography.subtitle2
@@ -138,8 +137,7 @@ fun ProfileUsernameAndId(username: String, userId: Int) {
 }
 
 @Composable
-fun SignOutDialog(
-    profileVM: ProfileViewModel,
+private fun SignOutDialog(
     showDialog: Boolean,
     onChanged: (Boolean) -> Unit,
     onActionResult: (String) -> Unit
@@ -148,6 +146,8 @@ fun SignOutDialog(
     val coroutineScope = rememberCoroutineScope()
 
     var isProcessing by remember { mutableStateOf(false) }
+
+    val profileVM = LocalProfileVM.current
 
     val onConfirm: () -> Unit = {
         coroutineScope.launch {
@@ -176,44 +176,43 @@ fun SignOutDialog(
 }
 
 @Composable
-fun ConfirmSigningOutText() {
-    Text(text = "Are you sure you want to sign out?")
+private fun ConfirmSigningOutText() {
+    Text(text = stringResource(R.string.confirm_sign_out_dialog_text))
 }
 
 @Composable
-fun ConfirmSigningOutButton(onConfirm: () -> Unit) {
+private fun ConfirmSigningOutButton(onConfirm: () -> Unit) {
     TextButton(
         onClick = onConfirm
     ) {
-        Text(text = "Confirm")
+        Text(text = stringResource(R.string.confirm_sign_out_button_text))
     }
 }
 
 @Composable
-fun NoSessionState(profileVM: ProfileViewModel, onActionResult: (String)-> Unit) {
+private fun NoSessionState(onActionResult: (String)-> Unit) {
 
     var isDialogShowing by remember { mutableStateOf(false) }
-    SignInDialog(profileVM, isDialogShowing, setIsDialogOpen = { isDialogShowing = it }, onActionResult)
+    SignInDialog(isDialogShowing, setIsDialogOpen = { isDialogShowing = it }, onActionResult)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(text = "Sign in to view your profile info")
+        Text(text = stringResource(R.string.sign_in_message))
         ShowSignInDialogButton(showDialog = { isDialogShowing = true })
     }
 }
 
 @Composable
-fun ShowSignInDialogButton(showDialog: () -> Unit) {
+private fun ShowSignInDialogButton(showDialog: () -> Unit) {
     Button(onClick = showDialog) {
-        Text(text = "Sign in")
+        Text(text = stringResource(R.string.sign_in_button_text))
     }
 }
 
 @Composable
-fun SignInDialog(
-    profileVM: ProfileViewModel,
+private fun SignInDialog(
     isDialogOpen: Boolean,
     setIsDialogOpen: (Boolean) -> Unit,
     onActionResult: (String)-> Unit
@@ -224,6 +223,8 @@ fun SignInDialog(
 
     val coroutineScope = rememberCoroutineScope()
     var isProcessing by remember { mutableStateOf(false) }
+
+    val profileVM = LocalProfileVM.current
 
     val onClick: () -> Unit = {
         coroutineScope.launch {
@@ -244,7 +245,7 @@ fun SignInDialog(
         if (!isProcessing) {
             AlertDialog(
                 onDismissRequest = { setIsDialogOpen(false) },
-                title = { Text(text = "Enter your TMDB credentials") },
+                title = { Text(text = stringResource(R.string.sign_in_dialog_title)) },
                 text = {
                     Column {
                         LoginInput(login, setValue = { login = it })
@@ -265,26 +266,26 @@ fun SignInDialog(
 }
 
 @Composable
-fun ProcessingAction() {
+private fun ProcessingAction() {
     Dialog(onDismissRequest = { }) {
         LoadingIndicator()
     }
 }
 
 @Composable
-fun LoginInput(login: String, setValue: (String) -> Unit) {
+private fun LoginInput(login: String, setValue: (String) -> Unit) {
 
     TextField(
-        placeholder = { Text(text = "Login") },
+        placeholder = { Text(text = stringResource(R.string.username_input_hint)) },
         value = login,
         onValueChange = { setValue(it) }
     )
 }
 
 @Composable
-fun PasswordInput(password: String, setValue: (String) -> Unit) {
+private fun PasswordInput(password: String, setValue: (String) -> Unit) {
     TextField(
-        placeholder = { Text(text = "Password") },
+        placeholder = { Text(text = stringResource(R.string.password_input_hint)) },
         value = password,
         onValueChange = { setValue(it) },
         visualTransformation = PasswordVisualTransformation('*')
@@ -292,15 +293,25 @@ fun PasswordInput(password: String, setValue: (String) -> Unit) {
 }
 
 @Composable
-fun ConfirmSignInButton(confirmSignIn: () -> Unit) {
+private fun ConfirmSignInButton(confirmSignIn: () -> Unit) {
     TextButton(onClick = confirmSignIn) {
-        Text(text = "Sign in")
+        Text(text = stringResource(R.string.confirm_sign_in_button_text))
     }
 }
 
 @Composable
-fun DialogCancelButton(cancelDialog: () -> Unit) {
+private fun DialogCancelButton(cancelDialog: () -> Unit) {
     TextButton(onClick = cancelDialog) {
-        Text(text = "Cancel")
+        Text(text = stringResource(R.string.cancel_sign_in_button_text))
+    }
+}
+
+@Composable
+private fun LoadingIndicator() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
     }
 }

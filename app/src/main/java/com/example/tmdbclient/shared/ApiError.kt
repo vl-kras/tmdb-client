@@ -5,6 +5,8 @@ import okhttp3.ResponseBody
 import retrofit2.Converter
 import java.io.IOException
 
+//TODO test it
+
 data class ApiError(
     @SerializedName("status_code") val statusCode: Int,
     @SerializedName("status_message")val statusMessage: String
@@ -15,7 +17,7 @@ data class ApiError(
         fun from(errorBody: ResponseBody): ApiError {
 
             val converter: Converter<ResponseBody, ApiError> =
-                ServiceLocator.retrofit.responseBodyConverter(
+                ServiceLocator.getRetrofit().responseBodyConverter(
                     ApiError::class.java,
                     arrayOfNulls<Annotation>(0)
                 )

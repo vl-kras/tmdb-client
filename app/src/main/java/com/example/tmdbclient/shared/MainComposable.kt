@@ -1,17 +1,17 @@
 package com.example.tmdbclient.shared
 
 import android.content.Context
+import android.net.ConnectivityManager
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -28,8 +28,13 @@ import com.example.tmdbclient.profile.ui.ProfileViewModel
 import com.example.tmdbclient.tvshow.TvShowsNavigation
 import kotlinx.coroutines.launch
 
+val LocalProfileVM = compositionLocalOf<ProfileViewModel> { error("No profile") }
+val LocalSessionIDWriter = compositionLocalOf<(String) -> Unit> { error("No writer") }
+
 @Composable
-fun MainScreen(context: Context) {
+fun MainScreen() {
+
+    val context = LocalContext.current
 
     val profileVM: ProfileViewModel = viewModel()
     val coroutineScope = rememberCoroutineScope()
@@ -63,26 +68,58 @@ fun MainScreen(context: Context) {
         }
     }
 
+    val connectivityManager
+            = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    val isNetworkAvailable = false
+
     val navController = rememberNavController()
+    CompositionLocalProvider(LocalProfileVM provides profileVM) {
+        Scaffold(
+            bottomBar = { BottomNav(navController) },
+            topBar = {
+                TopAppBar {
+                    Text(
+                        if(
+                        //TODO fix connectivity status
+                            isNetworkAvailable
+                        ) "Connected"
+                        else "Disconnected"
+                    )
+                }
+            }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = ScreenTab.Profile.route,
+                modifier = Modifier.padding(innerPadding)
+            ) {
 
-    Scaffold(bottomBar = { BottomNav(navController) } ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = ScreenTab.Profile.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
 
-            composable(ScreenTab.Profile.route) { ProfileScreen(profileVM, writeSessionId) }
-
-            composable(ScreenTab.Movies.route) { MoviesNavigation(profileVM) }
-
-            composable(ScreenTab.TvShows.route) { TvShowsNavigation(profileVM) }
+                composable(route = ScreenTab.Profile.route) {
+                    CompositionLocalProvider(
+                        LocalSessionIDWriter provides writeSessionId,
+                    ) {
+                        ProfileScreen()
+                    }
+                }
+                composable(ScreenTab.Movies.route) {
+                    MoviesNavigation()
+                }
+                composable(ScreenTab.TvShows.route) {
+                    TvShowsNavigation()
+                }
+            }
         }
     }
+
+    // TODO make use of implicit CompositionLocalProvider !!
+
+
 }
 
 @Composable
-fun BottomNav(navController: NavController) {
+private fun BottomNav(navController: NavController) {
 
     val bottomNavItems = listOf(
         ScreenTab.Profile,
@@ -105,7 +142,7 @@ fun BottomNav(navController: NavController) {
     }
 }
 
-fun onBottomNavItemClick(navController: NavController, screen: ScreenTab) {
+private fun onBottomNavItemClick(navController: NavController, screen: ScreenTab) {
 
     //Copy pasted from Android Developer guide
     navController.navigate(screen.route) {
@@ -123,7 +160,7 @@ fun onBottomNavItemClick(navController: NavController, screen: ScreenTab) {
     }
 }
 
-sealed class ScreenTab(val route: String, val label: String, val icon: ImageVector) {
+private sealed class ScreenTab(val route: String, val label: String, val icon: ImageVector) {
     object Profile: ScreenTab("profile", "Profile", Icons.Default.Person)
     object Movies: ScreenTab("movies", "Movies", Icons.Outlined.Movie)
     object TvShows: ScreenTab("tv_shows", "TV", Icons.Default.Tv)

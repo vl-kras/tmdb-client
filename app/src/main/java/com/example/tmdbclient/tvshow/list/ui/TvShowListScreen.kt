@@ -1,8 +1,14 @@
 package com.example.tmdbclient.tvshow.list.ui
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -17,7 +23,6 @@ import coil.compose.rememberImagePainter
 import com.example.tmdbclient.shared.TmdbBasePaths.TMDB_POSTER_W300_DIRECTORY
 import com.example.tmdbclient.tvshow.list.domain.TvShow
 import kotlinx.coroutines.launch
-
 
 
 @Composable
@@ -43,7 +48,7 @@ fun TvShowListScreen(navController: NavController) {
 }
 
 @Composable
-fun InitialState() {
+private fun InitialState() {
 
     val viewModel: TvShowListViewModel = viewModel()
 
@@ -57,7 +62,7 @@ fun InitialState() {
 }
 
 @Composable
-fun DisplayState(state: TvShowListState.DisplayState, navController: NavController) {
+private fun DisplayState(state: TvShowListState.DisplayState, navController: NavController) {
 
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -92,7 +97,7 @@ fun DisplayState(state: TvShowListState.DisplayState, navController: NavControll
 }
 
 @Composable
-fun ShowList(listState: LazyListState, listContents: List<TvShow>, navController: NavController) {
+private fun ShowList(listState: LazyListState, listContents: List<TvShow>, navController: NavController) {
 
     val columnCount = 2 // 1 for vertical list, 2+ for grid list
 
@@ -121,7 +126,7 @@ fun ShowList(listState: LazyListState, listContents: List<TvShow>, navController
 }
 
 @Composable
-fun TvShowListItem(show: TvShow, navController: NavController, modifier: Modifier) {
+private fun TvShowListItem(show: TvShow, navController: NavController, modifier: Modifier) {
 
     val onShowClick = {
         navController.navigate("tv/${show.id}")
@@ -145,7 +150,7 @@ fun TvShowListItem(show: TvShow, navController: NavController, modifier: Modifie
 }
 
 @Composable
-fun ListFooter(
+private fun ListFooter(
     isLoading: Boolean, setLoadingStatus: (Boolean) -> Unit,
     loadingResult: Result<Unit>, setLoadingResult: (Result<Unit>) -> Unit
 ) {
@@ -180,7 +185,7 @@ fun ListFooter(
 }
 
 @Composable
-fun NotLoadingFooter(onButtonClick: () -> Unit , loadingResult: Result<Unit>) {
+private fun NotLoadingFooter(onButtonClick: () -> Unit , loadingResult: Result<Unit>) {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -202,7 +207,7 @@ fun NotLoadingFooter(onButtonClick: () -> Unit , loadingResult: Result<Unit>) {
 }
 
 @Composable
-fun ErrorState(state: TvShowListState.ErrorState) {
+private fun ErrorState(state: TvShowListState.ErrorState) {
 
     val coroutineScope = rememberCoroutineScope()
     val viewModel: TvShowListViewModel = viewModel()
@@ -230,7 +235,7 @@ fun ErrorState(state: TvShowListState.ErrorState) {
 }
 
 @Composable
-fun LoadingIndicator() {
+private fun LoadingIndicator() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center

@@ -11,7 +11,7 @@ import com.example.tmdbclient.tvshow.details.ui.TvShowDetailsScreen
 import com.example.tmdbclient.tvshow.list.ui.TvShowListScreen
 
 @Composable
-fun TvShowsNavigation(profileVM: ProfileViewModel) {
+fun TvShowsNavigation() {
 
     val navController = rememberNavController()
 
@@ -24,7 +24,6 @@ fun TvShowsNavigation(profileVM: ProfileViewModel) {
             arguments = listOf(navArgument("showId") { type = NavType.IntType } )
         ) {
             TvShowDetailsScreen(
-                profileVM = profileVM,
                 showId = it.arguments?.getInt("showId") ?: 0,
                 navController = navController
             )

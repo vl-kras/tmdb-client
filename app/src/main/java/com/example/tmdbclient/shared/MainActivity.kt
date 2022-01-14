@@ -5,7 +5,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.platform.ComposeView
 import com.example.tmdbclient.shared.theme.MyApplicationTheme
 
-
 class MainActivity : AppCompatActivity() {
 
     //TODO de-hardcode all string values
@@ -17,7 +16,7 @@ class MainActivity : AppCompatActivity() {
         val composeView = ComposeView(activityContext).apply {
             setContent {
                 MyApplicationTheme {
-                    MainScreen(context = activityContext)
+                    MainScreen()
                 }
             }
         }

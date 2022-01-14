@@ -8,3 +8,5 @@ import androidx.datastore.preferences.preferencesDataStore
 
 val Context.datastore: DataStore<Preferences> by preferencesDataStore(name = "cookies")
 val SESSION_ID_KEY = stringPreferencesKey("session_id")
+
+//TODO switch to storing parcellable and checking if the session expired

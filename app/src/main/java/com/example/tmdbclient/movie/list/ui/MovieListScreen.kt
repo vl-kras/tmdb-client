@@ -47,7 +47,7 @@ fun MovieListScreen(navController: NavController) {
 }
 
 @Composable
-fun InitialState() {
+private fun InitialState() {
 
     val viewModel: MovieListViewModel = viewModel()
 
@@ -61,7 +61,7 @@ fun InitialState() {
 }
 
 @Composable
-fun DisplayState(state: MovieListState.DisplayState, navController: NavController) {
+private fun DisplayState(state: MovieListState.DisplayState, navController: NavController) {
 
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -96,7 +96,7 @@ fun DisplayState(state: MovieListState.DisplayState, navController: NavControlle
 }
 
 @Composable
-fun MovieList(listState: LazyListState, listContents: List<Movie>, navController: NavController) {
+private fun MovieList(listState: LazyListState, listContents: List<Movie>, navController: NavController) {
 
     val columnCount = 2 // 1 for vertical list, 2+ for grid list
 
@@ -125,7 +125,7 @@ fun MovieList(listState: LazyListState, listContents: List<Movie>, navController
 }
 
 @Composable
-fun MovieListItem(
+private fun MovieListItem(
     movie: Movie,
     navController: NavController,
     modifier: Modifier
@@ -155,7 +155,7 @@ fun MovieListItem(
 }
 
 @Composable
-fun ListFooter(
+private fun ListFooter(
     isLoading: Boolean, setLoadingStatus: (Boolean) -> Unit,
     loadingResult: Result<Unit>, setLoadingResult: (Result<Unit>) -> Unit
 ) {
@@ -190,7 +190,7 @@ fun ListFooter(
 }
 
 @Composable
-fun NotLoadingFooter(onButtonClick: () -> Unit , loadingResult: Result<Unit>) {
+private fun NotLoadingFooter(onButtonClick: () -> Unit , loadingResult: Result<Unit>) {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -212,7 +212,7 @@ fun NotLoadingFooter(onButtonClick: () -> Unit , loadingResult: Result<Unit>) {
 }
 
 @Composable
-fun ErrorState(state: MovieListState.ErrorState) {
+private fun ErrorState(state: MovieListState.ErrorState) {
 
     val coroutineScope = rememberCoroutineScope()
     val viewModel: MovieListViewModel = viewModel()
@@ -240,7 +240,7 @@ fun ErrorState(state: MovieListState.ErrorState) {
 }
 
 @Composable
-fun LoadingIndicator() {
+private fun LoadingIndicator() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center

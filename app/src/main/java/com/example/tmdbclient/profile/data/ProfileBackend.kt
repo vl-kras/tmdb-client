@@ -45,7 +45,7 @@ interface TmdbAccountApi {
 class ProfileBackend: ProfileInteractor.DataSource {
 
     private val apiKey = BuildConfig.TMDB_API_KEY
-    private val service = ServiceLocator.retrofit.create(TmdbAccountApi::class.java)
+    private val service = ServiceLocator.getRetrofit().create(TmdbAccountApi::class.java)
 
     /* Methods required by repository */
 

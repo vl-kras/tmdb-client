@@ -40,7 +40,7 @@ interface TmdbMovieDetailsApi {
 class MovieDetailsBackend: MovieDetailsInteractor.DataSource {
 
     private val apiKey = BuildConfig.TMDB_API_KEY
-    private val service = ServiceLocator.retrofit.create(TmdbMovieDetailsApi::class.java)
+    private val service = ServiceLocator.getRetrofit().create(TmdbMovieDetailsApi::class.java)
 
     override fun fetchMovieDetails(movieId: Int): Result<MovieDetails> {
 

@@ -38,7 +38,7 @@ interface TmdbShowDetailsApi {
 class TvShowDetailsBackend: TvShowDetailsInteractor.DataSource {
 
     private val apiKey = BuildConfig.TMDB_API_KEY
-    private val service = ServiceLocator.retrofit.create(TmdbShowDetailsApi::class.java)
+    private val service = ServiceLocator.getRetrofit().create(TmdbShowDetailsApi::class.java)
 
     override fun fetchTvShowDetails(showId: Int): Result<TvShowDetails> {
 

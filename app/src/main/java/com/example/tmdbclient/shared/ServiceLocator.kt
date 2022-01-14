@@ -1,5 +1,6 @@
 package com.example.tmdbclient.shared
 
+import com.example.tmdbclient.BuildConfig
 import com.example.tmdbclient.movie.details.data.MovieDetailsBackend
 import com.example.tmdbclient.movie.details.domain.MovieDetailsInteractor
 import com.example.tmdbclient.movie.list.data.MovieListBackend
@@ -14,8 +15,13 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
+
+//TODO sort of a god object, fix it!
+
 // dependency configurator (very dirty)
 object ServiceLocator {
+
+    fun getApiKey() = BuildConfig.TMDB_API_KEY
 
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder().build()
@@ -25,13 +31,15 @@ object ServiceLocator {
         GsonConverterFactory.create()
     }
 
-    val retrofit: Retrofit by lazy {
+    private val retrofitConfiguration: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(TmdbBasePaths.API_BASE_PATH)
             .addConverterFactory(gsonConverterFactory)
             .client(httpClient)
             .build()
     }
+
+    fun getRetrofit(): Retrofit = retrofitConfiguration
 
     fun getProfileInteractorDataSource(): ProfileInteractor.DataSource {
         return ProfileBackend()
